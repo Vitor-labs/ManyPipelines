@@ -1,0 +1,13 @@
+**/__pycache__
+.pytest_cache
+.env
+
+test*
+
+# data files should not be into the repository
+**.xlsx
+**.xlsm
+**.csv
+**.log
+**.db
+**.sqlite3

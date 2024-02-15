@@ -1,0 +1,47 @@
+repos:
+  - repo: https://github.com/psf/black-pre-commit-mirror
+    rev: 23.1.0
+    hooks:
+    - id: black
+      language_version: python3.10.11
+      stages: [commit]
+  - repo: https://github.com/timothycrosley/isort
+    rev: 5.12.0
+    hooks:
+    - id: isort
+      args: ["--profile", "black", "--filter-files"]
+      stages: [commit]
+  - repo: local
+    hooks:
+    - id: pytest
+      name: pytest
+      language: system
+      entry: pytest -v
+      always_run: true
+      pass_filenames: false
+      stages: [commit]
+  - repo: local
+    hooks:
+      - id: pylint
+        name: pylint
+        entry: pylint
+        language: system
+        types: [python]
+        args:
+          [
+            "-rn", # Only display messages
+            "-sn", # Don't display the score
+            "--rcfile=.pylintrc", # Link to your config file
+            "--load-plugins=pylint.extensions.docparams", # Load an extension
+          ]
+  - repo: local
+    hooks:
+    - id: requirements
+      name: requirements
+      entry: conda env update
+      language: system
+      args:
+        [
+          "--file enviroment.yml",
+          "--prune",
+        ]
