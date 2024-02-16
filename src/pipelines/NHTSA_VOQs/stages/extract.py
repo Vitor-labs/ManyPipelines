@@ -5,6 +5,7 @@ This module defines the basic flow of data Extraction from NHTSA portal
 import os
 import time
 import logging
+
 from io import BytesIO
 from zipfile import ZipFile
 from datetime import datetime
@@ -109,24 +110,21 @@ class DataExtractor:
 
     def __mount_dataset_from_content(self, info: Dict) -> pd.DataFrame:
         self.logger.debug("\nMounting extracted Dataset")
-        dataset = pd.DataFrame()
 
         if info["updated_date"] < datetime.now():
             resp = httpx.get(info[0]["url"], timeout=160).content
             with ZipFile(BytesIO(resp)) as myzip:
-                dataset = pd.read_csv(
-                    myzip.open("COMPLAINTS_RECEIVED_2020-2024.txt"),
-                    sep="\t",
-                    header=None,
-                    names=self.columns,
-                )
-        df = dataset[
-            (
-                dataset["MFR_NAME"] == ["Ford Motor Company"]
-                and dataset["DATEA"].gt(20230215)
+                with myzip.open("COMPLAINTS_RECEIVED_2020-2024.txt") as file:
+                    dataset = pd.read_csv(
+                        file, sep="\t", header=None, names=self.columns
+                    )
+        return dataset[
+            (dataset["MFR_NAME"] == "Ford Motor Company")
+            & (
+                pd.to_datetime(dataset["DATEA"], format="%Y/%m/%d")
+                > pd.Timestamp("2024-02-01")
             )
         ]
-        return df
 
     def __extract_links_from_page(self, url) -> List:
         soup = bs4.BeautifulSoup(httpx.get(url).text, "html.parser")
@@ -137,7 +135,9 @@ class DataExtractor:
         data_list = []
 
         if len(elements) % 3 != 0:
-            print("The list of elements does not contain complete data for each row.")
+            self.logger.warning(
+                "The list of elements does not contain complete data for each row."
+            )
         else:
             for i in range(0, len(elements), 3):
                 url_elem = elements[i].find("a")
