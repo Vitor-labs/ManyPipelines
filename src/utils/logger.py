@@ -5,15 +5,13 @@ pipeline
 
 import json
 import logging.config
-import pathlib
 
 
 def setup_logger() -> None:
     """
     Loads configs into logger
     """
-    conf_file = pathlib.Path("src/utils/config.json")
-    with open(conf_file, "r", encoding="utf-8") as file:
+    with open("./src/utils/config.json", "r", encoding="utf-8") as file:
         config = json.load(file)
 
     logging.config.dictConfig(config)

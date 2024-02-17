@@ -112,7 +112,7 @@ class DataExtractor:
         self.logger.debug("\nMounting extracted Dataset")
 
         if info["updated_date"] < datetime.now():
-            resp = httpx.get(info[0]["url"], timeout=160).content
+            resp = httpx.get(info["url"], timeout=160).content
             with ZipFile(BytesIO(resp)) as myzip:
                 with myzip.open("COMPLAINTS_RECEIVED_2020-2024.txt") as file:
                     dataset = pd.read_csv(
@@ -121,7 +121,7 @@ class DataExtractor:
         return dataset[
             (dataset["MFR_NAME"] == "Ford Motor Company")
             & (
-                pd.to_datetime(dataset["DATEA"], format="%Y/%m/%d")
+                pd.to_datetime(dataset["DATEA"], format="%Y%m%d")
                 > pd.Timestamp("2024-02-01")
             )
         ]
@@ -156,5 +156,4 @@ class DataExtractor:
                     ),
                 }
                 data_list.append(data_dict)
-
         return data_list
