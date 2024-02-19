@@ -24,6 +24,7 @@ from src.utils.funtions import (
     get_mileage_class,
     classify_binning,
     load_vfgs,
+    create_client,
 )
 from src.utils.logger import setup_logger
 
@@ -76,7 +77,7 @@ class DataTransformer:
         transformed = pd.DataFrame(contract.raw_data)
         credentials = self.__load_classifier_credentials()
         vfgs = load_vfgs()
-        gsar_token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6ImFSZ2hZU01kbXI2RFZpMTdWVVJtLUJlUENuayJ9.eyJhdWQiOiJ1cm46Z3NhcjpyZXNvdXJjZTp3ZWI6cHJvZCIsImlzcyI6Imh0dHBzOi8vY29ycC5zdHMuZm9yZC5jb20vYWRmcy9zZXJ2aWNlcy90cnVzdCIsImlhdCI6MTcwNzM5ODE2MiwiZXhwIjoxNzA3NDI2OTYyLCJDb21tb25OYW1lIjoiVkRVQVJUMTAiLCJzdWIiOiJWRFVBUlQxMCIsInVpZCI6InZkdWFydDEwIiwiZm9yZEJ1c2luZXNzVW5pdENvZGUiOiJGU0FNUiIsImdpdmVuTmFtZSI6IlZpY3RvciIsInNuIjoiRHVhcnRlIiwiaW5pdGlhbHMiOiJWLiIsIm1haWwiOiJ2ZHVhcnQxMEBmb3JkLmNvbSIsImVtcGxveWVlVHlwZSI6Ik0iLCJzdCI6IkJBIiwiYyI6IkJSQSIsImZvcmRDb21wYW55TmFtZSI6IklOU1QgRVVWQUxETyBMT0RJIE4gUkVHSU9OQUwgQkFISUEiLCJmb3JkRGVwdENvZGUiOiIwNjY0Nzg0MDAwIiwiZm9yZERpc3BsYXlOYW1lIjoiRHVhcnRlLCBWaWN0b3IgKFYuKSIsImZvcmREaXZBYmJyIjoiUFJEIiwiZm9yZERpdmlzaW9uIjoiUEQgT3BlcmF0aW9ucyBhbmQgUXVhbGl0eSIsImZvcmRDb21wYW55Q29kZSI6IjAwMDE1ODM4IiwiZm9yZE1hbmFnZXJDZHNpZCI6Im1tYWdyaTEiLCJmb3JkTVJSb2xlIjoiTiIsImZvcmRTaXRlQ29kZSI6IjY1MzYiLCJmb3JkVXNlclR5cGUiOiJFbXBsb3llZSIsImFwcHR5cGUiOiJQdWJsaWMiLCJhcHBpZCI6InVybjpnc2FyOmNsaWVudGlkOndlYjpwcm9kIiwiYXV0aG1ldGhvZCI6Imh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9hdXRoZW50aWNhdGlvbm1ldGhvZC93aW5kb3dzIiwiYXV0aF90aW1lIjoiMjAyNC0wMi0wOFQxMzoyMTowMi40NjhaIiwidmVyIjoiMS4wIn0.ZLJEWzeff_UG_cTHr5tZizQKmOaJBIJV0f5GGIQH5GYoag2uj9ALzodEzaooH0NdAKHUtS_LkOIGB7B-RgglJ6dITaqTKfnwi6NSpNrUhfsehDmus_byxlfR1HJdBMzz8zrYac_gO0Qr1R76fWGl8hhQCPzDz_GlARbUBSfNRHODBP1CSbbvFX_N3C803Ev4CyTKxjVWinFqCAM18S4_MTLKQ6uVKxM5PACfuhc49Cj9Q45G19P-pUjeFgec1j8IiYW-pgv7lyJiGx45JkImZbRn2R3nkf0Jyy4cSdeDm6cPygN9FuaRRO55DM0MasD0L_hIhvuKNNpqDP-5_7HEHg"
+        gsar_token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6ImFSZ2hZU01kbXI2RFZpMTdWVVJtLUJlUENuayJ9.eyJhdWQiOiJ1cm46Z3NhcjpyZXNvdXJjZTp3ZWI6cHJvZCIsImlzcyI6Imh0dHBzOi8vY29ycC5zdHMuZm9yZC5jb20vYWRmcy9zZXJ2aWNlcy90cnVzdCIsImlhdCI6MTcwODM2ODY3NSwiZXhwIjoxNzA4Mzk3NDc1LCJDb21tb25OYW1lIjoiVkRVQVJUMTAiLCJzdWIiOiJWRFVBUlQxMCIsInVpZCI6InZkdWFydDEwIiwiZm9yZEJ1c2luZXNzVW5pdENvZGUiOiJGU0FNUiIsImdpdmVuTmFtZSI6IlZpY3RvciIsInNuIjoiRHVhcnRlIiwiaW5pdGlhbHMiOiJWLiIsIm1haWwiOiJ2ZHVhcnQxMEBmb3JkLmNvbSIsImVtcGxveWVlVHlwZSI6Ik0iLCJzdCI6IkJBIiwiYyI6IkJSQSIsImZvcmRDb21wYW55TmFtZSI6IklOU1QgRVVWQUxETyBMT0RJIE4gUkVHSU9OQUwgQkFISUEiLCJmb3JkRGVwdENvZGUiOiIwNjY0Nzg0MDAwIiwiZm9yZERpc3BsYXlOYW1lIjoiRHVhcnRlLCBWaWN0b3IgKFYuKSIsImZvcmREaXZBYmJyIjoiUFJEIiwiZm9yZERpdmlzaW9uIjoiUEQgT3BlcmF0aW9ucyBhbmQgUXVhbGl0eSIsImZvcmRDb21wYW55Q29kZSI6IjAwMDE1ODM4IiwiZm9yZE1hbmFnZXJDZHNpZCI6Im1tYWdyaTEiLCJmb3JkTVJSb2xlIjoiTiIsImZvcmRTaXRlQ29kZSI6IjY1MzYiLCJmb3JkVXNlclR5cGUiOiJFbXBsb3llZSIsImFwcHR5cGUiOiJQdWJsaWMiLCJhcHBpZCI6InVybjpnc2FyOmNsaWVudGlkOndlYjpwcm9kIiwiYXV0aG1ldGhvZCI6Imh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9hdXRoZW50aWNhdGlvbm1ldGhvZC93aW5kb3dzIiwiYXV0aF90aW1lIjoiMjAyNC0wMi0xOVQxODo1NjoxNS4zNThaIiwidmVyIjoiMS4wIn0.hrND9dXaq0yTK8D7970t2u1LaHRp9DL5gBPPaQXqJD9BJnBHt8QjHNiFxDo4Cw_7qf-ur3Ofp-2b94-bIF3z8W17xGQUhUWlmmAWdueU4jfDxt264vpQv3eOvh2JOnldTA6s3IzJMaPmO_6iVssj6rH-7nc_2jGez59tCIiSRAnW2fojkcU9ZI9ibVOBXvAZH5HIv7a2GNsQDc7gmbfaVEJ0pE141uOAIRlzbhFFE9qtW2byi7V_CnaONie4LOwW7pl9IVz2aHiHr9I3cj_otGp31c1YtgIYjPQDrBb3MN6aPvCtZrZgE88IqxvGrRNc1DKKgDEuMMzAvRmszs-VAg"
 
         transformed[["FUNCTION_", "COMPONET", "FAILURE"]] = transformed.apply(
             lambda row: self.__classify_case(row["CDESCR"], credentials),
@@ -118,6 +119,8 @@ class DataTransformer:
             lambda row: get_mileage_class(row["MILES"]), axis=0
         )
         transformed["EXTRACTED_DATE"] = contract.extract_date
+        # TODO: remove this
+        transformed.to_csv("tranformed_dataset_mock.csv")
 
         return transformed
 
@@ -135,12 +138,12 @@ class DataTransformer:
         return {
             key: data[key]
             for key in [
-                "wersVl",
-                "origWarantDate",
                 "prodDate",
-                "plant",
-                "globVl",
+                "wersVl",
                 "awsVl",
+                "globVl",
+                "plant",
+                "origWarantDate",
             ]
         }
 
@@ -151,16 +154,17 @@ class DataTransformer:
         Returns:
             Dict[str, str]: _description_
         """
-        response = httpx.post(
-            str(os.getenv("TOKEN_ENDPOINT")),
-            data={
-                "client_id": str(os.getenv("CLIENT_ID")),
-                "client_secret": str(os.getenv("CLIENT_SECRET")),
-                "scope": str(os.getenv("SCOPE")),
-                "grant_type": "client_credentials",
-            },
-            timeout=160,
-        )
+        with create_client() as client:
+            response = client.post(
+                str(os.getenv("TOKEN_ENDPOINT")),
+                data={
+                    "client_id": str(os.getenv("CLIENT_ID")),
+                    "client_secret": str(os.getenv("CLIENT_SECRET")),
+                    "scope": str(os.getenv("SCOPE")),
+                    "grant_type": "client_credentials",
+                },
+                timeout=160,
+            )
         return {
             "url": str(os.getenv("API_ENDPOINT")),
             "token": response.json()["access_token"],
@@ -223,12 +227,13 @@ class DataTransformer:
             },
         }
         try:
-            response = httpx.post(
-                credentials["url"],
-                headers={"Authorization": f"Bearer {credentials['token']}"},
-                json=content,
-                timeout=360,
-            )
+            with create_client() as client:
+                response = client.post(
+                    credentials["url"],
+                    headers={"Authorization": f"Bearer {credentials['token']}"},
+                    json=content,
+                    timeout=360,
+                )
         except Exception as exc:
             self.logger.exception(exc)
             self.logger.error(exc)

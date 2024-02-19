@@ -6,6 +6,7 @@ import logging
 
 from src.utils.logger import setup_logger
 from src.pipelines.NHTSA_VOQs.stages.extract import DataExtractor
+from src.pipelines.NHTSA_VOQs.stages.transform import DataTransformer
 
 
 class Pipeline:
@@ -16,7 +17,7 @@ class Pipeline:
     def __init__(self) -> None:
         self.logger = logging.getLogger(__name__)
         self.extractor = DataExtractor()
-        self.transformer = None
+        self.transformer = DataTransformer()
         self.loader = None
         setup_logger()
 
@@ -26,3 +27,4 @@ class Pipeline:
         """
         self.logger.info("Running main pipeline")
         extracted = self.extractor.extract()
+        transformed = self.transformer.transform(extracted)

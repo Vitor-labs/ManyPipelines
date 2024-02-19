@@ -12,7 +12,6 @@ from typing import Dict, List
 from datetime import date, datetime
 
 import bs4
-import httpx
 import pandas as pd
 import pandera as pa
 
@@ -21,6 +20,7 @@ from src.utils.logger import setup_logger
 from src.errors.extract_error import ExtractError
 from src.pipelines.NHTSA_VOQs.contracts.schemas.extract import schema
 from src.pipelines.NHTSA_VOQs.contracts.extract_contract import ExtractContract
+from src.utils.funtions import create_client
 
 
 class DataExtractor:
@@ -32,57 +32,7 @@ class DataExtractor:
     """
 
     def __init__(self) -> None:
-        self.columns = [
-            "CMPLID",
-            "ODINO",
-            "MFR_NAME",
-            "MAKETXT",
-            "MODELTXT",
-            "YEARTXT",
-            "CRASH",
-            "FAILDATE",
-            "FIRE",
-            "INJURED",
-            "DEATHS",
-            "COMPDESC",
-            "CITY",
-            "STATE",
-            "VIN",
-            "DATEA",
-            "LDATE",
-            "MILES",
-            "OCCURENCES",
-            "CDESCR",
-            "CMPL_TYPE",
-            "POLICE_RPT_YN",
-            "PURCH_DT",
-            "ORIG_OWER_YN",
-            "ANTI_BRAKES_YN",
-            "CRUISE_CONT_YN",
-            "NUM_CYLS",
-            "DRIVE_TRAIN",
-            "FUEL_SYS",
-            "FUEL_TYPE",
-            "TRASN_TYPE",
-            "VEH_SPEED",
-            "DOT",
-            "TIRE_SIZE",
-            "LOC_OF_TIRE",
-            "TIRE_FAIL_TYPE",
-            "ORIG_EQUIP_YN",
-            "MANUF_DT",
-            "SEAT_TYPE",
-            "RESTRAINT_TYPE",
-            "DEALER_NAME",
-            "DEALER_TEL",
-            "DEALER_CITY",
-            "DEALER_STATE",
-            "DEALER_ZIP",
-            "PROD_TYPE",
-            "REPAIRED_YN",
-            "MEDICAL_ATTN",
-            "VEHICLES_TOWED_YN",
-        ]
+        self.columns: List[str] = list(schema.columns.keys())
         self.logger = logging.getLogger(__name__)
         setup_logger()
 
@@ -100,9 +50,7 @@ class DataExtractor:
         start_time = time.time()
         self.logger.debug("\nRunning Extract stage")
         try:
-            datasets = self.__extract_links_from_page(
-                str(os.getenv("NHTSA_DATASETS_URL"))
-            )
+            datasets = self.__extract_links_from_page(str(os.getenv("NHTSA_BASE_URL")))
             retrived = self.__mount_dataset_from_content(datasets[0])
             return ExtractContract(raw_data=retrived, extract_date=date.today())
 
@@ -115,25 +63,38 @@ class DataExtractor:
     def __mount_dataset_from_content(self, info: Dict) -> pd.DataFrame:
         self.logger.debug("\nMounting extracted Dataset")
 
-        resp = httpx.get(info["url"], timeout=160).content
+        if date.strftime(info["updated_date"], "%Y-%m-%d") >= str(
+            os.getenv("LAST_COMPLAINT_WAVE_DATE")
+        ):
+            raise ExtractError("Datasets not updated")
+
+        with create_client() as client:
+            resp = client.get(info["url"], timeout=160).content
+
         with ZipFile(BytesIO(resp)) as myzip:
             with myzip.open("COMPLAINTS_RECEIVED_2020-2024.txt") as file:
                 dataset = pd.read_csv(file, sep="\t", header=None, names=self.columns)
                 # dataset = schema.validate(df)
-        # filter: 'model year' > 2011
-        return dataset[
+
+        df = dataset[
             (dataset["MFR_NAME"] == "Ford Motor Company")
             & (
                 pd.to_datetime(dataset["DATEA"], format="%Y%m%d")
                 > pd.Timestamp(str(os.getenv("LAST_COMPLAINT_WAVE_DATE")))
             )
+            & (dataset["YEARTXT"].fillna(0).astype(int) > 2011)
         ]
 
-    def __extract_links_from_page(self, url) -> List:
-        soup = bs4.BeautifulSoup(httpx.get(url).text, "html.parser")
-        tables = soup.select("#nhtsa_s3_listing > tbody")
+        df.to_csv("./data/raw/mock_complaints.csv")
 
-        complaints = tables[3]
+        return dataset
+
+    def __extract_links_from_page(self, url) -> List:
+        with create_client() as client:
+            self.logger.info("Acessing NHSTA datasets...")
+            soup = bs4.BeautifulSoup(client.get(url).text, "html.parser")
+
+        complaints = soup.select("#nhtsa_s3_listing > tbody")[3]
         elements = list(complaints.find_all("td"))
         data_list = []
 

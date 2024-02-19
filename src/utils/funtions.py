@@ -2,8 +2,11 @@
 This module defines 
 """
 
+import os
 from datetime import datetime
 from typing import FrozenSet, Dict
+
+import httpx
 
 
 def get_quarter(date_: str) -> str:
@@ -241,3 +244,23 @@ def convert_float(text: str) -> float:
         return round(float(text), 2) if text != "" else 0.0
     except ValueError:
         return 0.0
+
+
+def create_client() -> httpx.Client:
+    """
+    Creates a common client for future http requests
+
+    Returns:
+        httpx.Client: client with ford proxies
+    """
+    ford_proxy = str(os.getenv("FORD_PROXY"))
+    timeout_config = httpx.Timeout(10.0, connect=5.0)
+    proxy_mounts = {
+        "http://": httpx.HTTPTransport(proxy=httpx.Proxy(ford_proxy)),
+        "https://": httpx.HTTPTransport(proxy=httpx.Proxy(ford_proxy)),
+    }
+    return httpx.Client(
+        timeout=timeout_config,
+        mounts=proxy_mounts,
+        verify=False,
+    )
