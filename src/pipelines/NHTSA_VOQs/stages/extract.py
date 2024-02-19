@@ -14,10 +14,12 @@ from typing import Dict, List
 import bs4
 import httpx
 import pandas as pd
+import pandera as pa
 
 from src.utils.decorators import retry
 from src.utils.logger import setup_logger
 from src.errors.extract_error import ExtractError
+from src.pipelines.NHTSA_VOQs.schemas.extract import schema
 
 
 class DataExtractor:
@@ -115,9 +117,8 @@ class DataExtractor:
             resp = httpx.get(info["url"], timeout=160).content
             with ZipFile(BytesIO(resp)) as myzip:
                 with myzip.open("COMPLAINTS_RECEIVED_2020-2024.txt") as file:
-                    dataset = pd.read_csv(
-                        file, sep="\t", header=None, names=self.columns
-                    )
+                    df = pd.read_csv(file, sep="\t", header=None, names=self.columns)
+                    # dataset = schema.validate(df)
         return dataset[
             (dataset["MFR_NAME"] == "Ford Motor Company")
             & (

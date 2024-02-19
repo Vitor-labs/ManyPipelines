@@ -14,11 +14,11 @@ permissions:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v3
+
     - name: Set up Python 3.10
       uses: actions/setup-python@v3
       with:
@@ -28,9 +28,25 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install pipenv
+    
     - name: Install dependencies
       run: |
         if [ -f Pipfile.lock ]; then pipenv sync; fi
-    - name: Test with pytest
-      run: |
-        pytest
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: lint project
+        uses: psf/black@stable
+        with:
+          options: "--check --verbose"
+          src: "./src"
+          jupyter: true
+          version: "21.5b1"
+
+      - name: sort imports
+        uses: isort/isort-action@v1
+        with:
+          args: "--check-only --profile black ./src"

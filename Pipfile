@@ -9,6 +9,9 @@ httpx = "*"
 beautifulsoup4 = "*"
 python-dotenv = "*"
 pandera = "*"
+pyyaml = "*"
+black = "*"
+frictionless = "*"
 
 [dev-packages]
 ipykernel = "*"
