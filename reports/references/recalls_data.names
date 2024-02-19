@@ -1,0 +1,54 @@
+RECALLS
+
+The RECALL file contains all NHTSA safety-related defect and compliance 
+campaigns since 1967.
+
+File characteristics:
+
+-  All the records are TAB delimited
+-  All dates are in YYYYMMDD format
+
+-  Maximum Record length: 9109
+
+Change log:
+1.Field# 23 added as of Sept. 14, 2007
+2.Changed flat file extension from .lst to .txt as of Sept. 14, 2007
+3.Field# 24 added as of March 14, 2008
+4.Field#s 25,26,27 added as of March 23, 2020
+
+Last Updated March 23, 2020
+
+
+FIELDS:
+=======
+
+Field#   Name                Type/Size   Description                      
+------   ---------           ---------   --------------------------------------
+1        RECORD_ID           NUMBER(9)   RUNNING SEQUENCE NUMBER, 
+                                          WHICH UNIQUELY IDENTIFIES THE RECORD.
+2        CAMPNO              CHAR(12)    NHTSA CAMPAIGN NUMBER
+3        MAKETXT             CHAR(25)    VEHICLE/EQUIPMENT MAKE
+4        MODELTXT            CHAR(256)   VEHICLE/EQUIPMENT MODEL
+5        YEARTXT             CHAR(4)     MODEL YEAR, 9999 IF UNKNOWN or N/A
+6        MFGCAMPNO           CHAR(20)    MFR CAMPAIGN NUMBER
+7        COMPNAME            CHAR(256)   COMPONENT DESCRIPTION
+8        MFGNAME             CHAR(40)    MANUFACTURER THAT FILED DEFECT/NONCOMPLIANCE REPORT
+9        BGMAN               CHAR(8)     BEGIN DATE OF MANUFACTURING
+10       ENDMAN              CHAR(8)     END DATE OF MANUFACTURING
+11       RCLTYPECD           CHAR(4)     VEHICLE, EQUIPMENT OR TIRE REPORT
+12       POTAFF              NUMBER(9)   POTENTIAL NUMBER OF UNITS AFFECTED               
+13       ODATE               CHAR(8)     DATE OWNER NOTIFIED BY MFR
+14       INFLUENCED_BY       CHAR(4)     RECALL INITIATOR (MFR/OVSC/ODI)
+15       MFGTXT              CHAR(40)    MANUFACTURERS OF RECALLED VEHICLES/PRODUCTS
+16       RCDATE              CHAR(8)     REPORT RECEIVED DATE
+17       DATEA               CHAR(8)     RECORD CREATION DATE
+18       RPNO                CHAR(3)     REGULATION PART NUMBER
+19       FMVSS               CHAR(10)    FEDERAL MOTOR VEHICLE SAFETY STANDARD NUMBER
+20       DESC_DEFECT         CHAR(2000)  DEFECT SUMMARY
+21       CONEQUENCE_DEFECT   CHAR(2000)  CONSEQUENCE SUMMARY	
+22       CORRECTIVE_ACTION   CHAR(2000)  CORRECTIVE SUMMARY
+23       NOTES               CHAR(2000)  RECALL NOTES
+24       RCL_CMPT_ID         CHAR(27)    NUMBER THAT UNIQUELY IDENTIFIES A RECALLED COMPONENT.
+25       MFR_COMP_NAME       CHAR(50)    MANUFACTURER-SUPPLIED COMPONENT NAME
+26       MFR_COMP_DESC       CHAR(200)   MANUFACTURER-SUPPLIED COMPONENT DESCRIPTION
+27       MFR_COMP_PTNO       CHAR(100)   MANUFACTURER-SUPPLIED COMPONENT PART NUMBER
