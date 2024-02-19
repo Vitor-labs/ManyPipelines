@@ -49,15 +49,7 @@
     'PROD_TYPE': 'V',
     'REPAIRED_YN': nan,
     'MEDICAL_ATTN': 'N',
-    'VEHICLES_TOWED_YN': 'N',
-    'NEW_OLD': 'New',
-    'FUNCTION': 'F8',
-    'COMPONET': 'DOOR LATCH',
-    'FAILURE': 'FROZEN',
-    'BINNING': 'DOOR LATCH | FROZEN',
-    'FULL_STATE': 'Illinois',
-    'FAIL_QUARTER': '2022Q4',
-    'EXTRACTED_DATE': '2024-01-29'
+    'VEHICLES_TOWED_YN': 'N'
 ```
 ----
 
@@ -81,6 +73,50 @@
     'COMPLETION_RATE':''
 }
 ```
+
+### F8 SHEET:
+```
+    Comp_ID == CMPLID
+    ODINO == ODINO
+    Brand == MAKETXT
+    Model == MODELTXT
+    Model_Year == YEARTXT
+    Fail_Date == FAILDATE
+    Fail_Quarter FAIL_QUARTER
+    VOQ_Date == DATEA
+    Production_Date
+    Wave_Date == EXTRACTED_DATE
+    Full_VIN == FULL_VIN
+    VIN == VIN
+    Function == FUNCTION_ 
+    Complaint == CDESCR
+    Binning == BINNING
+    VFG == VFG
+    Bin Overall == COMPONET
+    Detail == FAILURE
+    Crash == CRASH
+    Fire == FIRE
+    Injured Amount == INJURED
+    Death Amount == DEATHS
+    Miles == MILES
+    State == STATE_
+    Speed == VEH_SPEED
+    Dealer_Name == DEALER_NAME
+    Dealer_State == DEALER_STATE
+    To_be_Binned -> NOT MAINTEINED
+    Vehicle_Line_WERS == VEHICLE_LINE_WERS
+    Vehicle_Line_GSAR == VEHICLE_LINE_GSAR
+    Vehicle_Line_Global == VEHICLE_LINE_GLOBAL
+    Assembly_Plant == ASSEMBLY_PLANT
+    Warranty_Start_Date == WARRANTY_START_DATE
+    Repair_Date_1
+    Repair_Date_2
+    Failure_Mode
+    NewOld
+    New_Failure_Mode
+    Mileage_Class
+```
+
 
 ### FINAL COMPLAINT:
 ```sql
@@ -139,12 +175,9 @@
     BINNING CHAR(63)
     FULL_STATE CHAR(30)
     FAIL_QUARTER CHAR(6)
-    Full_VIN CHAR(17)
+    FULL_VIN CHAR(17)
     Production_Date DATE
     VFG CHAR(3)
-    10_Char_MY CHAR(1)
-    11_Char_Plant CHAR(1)
-    8_Char_Engine CHAR(1)
     Vehicle_Line_WERS CHAR(128)
     Vehicle_Line_GSAR CHAR(128)
     Vehicle_Line_Global CHAR(128)
@@ -153,6 +186,8 @@
     Repair_Date_1 DATE
     Repair_Date_2 DATE
     EXTRACTED_DATE DATE
+    FAILURE_MODE TEXT
+    Mileage_Class TEXT
 ```
 
 ### FINAL RECALL:
