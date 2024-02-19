@@ -1,0 +1,46 @@
+To iterate over a Pandas DataFrame and apply a function that returns multiple values to new columns, you can use the `.apply()` method along with a lambda function. This will allow you to apply your classification function row-wise and split the results into separate columns.
+
+First, let's assume you have the following classification function that takes a complaint as input and returns three categories:
+
+```python
+def classify_complaint(complaint):
+    # Your classification logic goes here
+    category1 = ...  # result of classification for category 1
+    category2 = ...  # result of classification for category 2
+    category3 = ...  # result of classification for category 3
+    return category1, category2, category3
+```
+
+Now, let's assume you have a DataFrame `df` with a column `'complaint'` that you want to process. You can use the following code to apply the function and assign the results to three new columns:
+
+```python
+import pandas as pd
+
+# Sample DataFrame
+df = pd.DataFrame({
+    'complaint': [
+        'I received a damaged product',
+        'The delivery was late',
+        'I was overcharged for my purchase'
+        # ... other complaints
+    ]
+})
+
+# Function that classifies complaints into three categories
+def classify_complaint(complaint):
+    # Your classification logic goes here
+    category1 = ...  # result of classification for category 1
+    category2 = ...  # result of classification for category 2
+    category3 = ...  # result of classification for category 3
+    return category1, category2, category3
+
+# Apply the function and split the results into three new columns
+df[['category1', 'category2', 'category3']] = df.apply(lambda row: classify_complaint(row['complaint']), axis=1, result_type='expand')
+
+# Now your df will have three new columns: 'category1', 'category2', and 'category3'
+print(df)
+```
+
+Make sure to replace the `...` in the `classify_complaint` function with your actual classification logic. The `apply` method is used with `axis=1` to indicate that the function should be applied to each row. The `result_type='expand'` parameter tells Pandas to split the tuple returned by the function into separate columns.
+
+This approach is efficient and keeps your code clean. However, if the DataFrame is very large and the function is complex, using `.apply()` with `lambda` can be slow because it operates row-wise. If performance is an issue, consider vectorizing your operation or using other optimization techniques.
