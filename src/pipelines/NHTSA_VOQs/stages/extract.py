@@ -8,8 +8,8 @@ import logging
 
 from io import BytesIO
 from zipfile import ZipFile
-from datetime import datetime
 from typing import Dict, List
+from datetime import date, datetime
 
 import bs4
 import httpx
@@ -19,7 +19,8 @@ import pandera as pa
 from src.utils.decorators import retry
 from src.utils.logger import setup_logger
 from src.errors.extract_error import ExtractError
-from src.pipelines.NHTSA_VOQs.schemas.extract import schema
+from src.pipelines.NHTSA_VOQs.contracts.schemas.extract import schema
+from src.pipelines.NHTSA_VOQs.contracts.extract_contract import ExtractContract
 
 
 class DataExtractor:
@@ -86,7 +87,7 @@ class DataExtractor:
         setup_logger()
 
     @retry([ConnectionError])
-    def extract(self) -> pd.DataFrame:
+    def extract(self) -> ExtractContract:
         """
         Main method of extraction
 
@@ -102,7 +103,8 @@ class DataExtractor:
             datasets = self.__extract_links_from_page(
                 str(os.getenv("NHTSA_DATASETS_URL"))
             )
-            return self.__mount_dataset_from_content(datasets[0])
+            retrived = self.__mount_dataset_from_content(datasets[0])
+            return ExtractContract(raw_data=retrived, extract_date=date.today())
 
         except Exception as exc:
             raise ExtractError(str(exc)) from exc
@@ -113,17 +115,17 @@ class DataExtractor:
     def __mount_dataset_from_content(self, info: Dict) -> pd.DataFrame:
         self.logger.debug("\nMounting extracted Dataset")
 
-        if info["updated_date"] < datetime.now():
-            resp = httpx.get(info["url"], timeout=160).content
-            with ZipFile(BytesIO(resp)) as myzip:
-                with myzip.open("COMPLAINTS_RECEIVED_2020-2024.txt") as file:
-                    df = pd.read_csv(file, sep="\t", header=None, names=self.columns)
-                    # dataset = schema.validate(df)
+        resp = httpx.get(info["url"], timeout=160).content
+        with ZipFile(BytesIO(resp)) as myzip:
+            with myzip.open("COMPLAINTS_RECEIVED_2020-2024.txt") as file:
+                dataset = pd.read_csv(file, sep="\t", header=None, names=self.columns)
+                # dataset = schema.validate(df)
+        # filter: 'model year' > 2011
         return dataset[
             (dataset["MFR_NAME"] == "Ford Motor Company")
             & (
                 pd.to_datetime(dataset["DATEA"], format="%Y%m%d")
-                > pd.Timestamp("2024-02-01")
+                > pd.Timestamp(str(os.getenv("LAST_COMPLAINT_WAVE_DATE")))
             )
         ]
 

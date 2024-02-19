@@ -379,7 +379,6 @@ schema = DataFrameSchema(
     unique=None,
     report_duplicates="all",
     unique_column_names=False,
-    add_missing_columns=False,
     title=None,
     description=None,
 )

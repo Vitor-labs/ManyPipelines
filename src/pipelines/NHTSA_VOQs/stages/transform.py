@@ -6,14 +6,25 @@ retrived from NHTSA.
 import os
 import time
 import logging
+from typing import Dict, List
 from functools import lru_cache
-from datetime import date, datetime
-from typing import Dict, FrozenSet, List
 
+import httpx
 import pandas as pd
-from src.errors.transform_error import TransformError
 
-from src.utils.decorators import retry
+from src.errors.transform_error import TransformError
+from src.pipelines.NHTSA_VOQs.contracts.extract_contract import ExtractContract
+from src.pipelines.NHTSA_VOQs.contracts.transform_contract import TransformContract
+
+from src.utils.decorators import rate_limiter, retry
+from src.utils.funtions import (
+    load_categories,
+    convert_code_into_state,
+    get_quarter,
+    get_mileage_class,
+    classify_binning,
+    load_vfgs,
+)
 from src.utils.logger import setup_logger
 
 
@@ -27,22 +38,14 @@ class DataTransformer:
 
     def __init__(self) -> None:
         self.logger = logging.getLogger(__name__)
-        self.parts = (
-            "door, window, windshield, wiper, glass, hood, trunk, moonroof, "
-            + "bumper, tail light, pillar, undershield, roof rack, latch, he"
-            + "adlight, door handle, door keypad, window, weatherstripping, "
-            + "side mirror, lighting, swing gate, cowl grille, hard top, ski"
-            + "d plate, sheet metal, running boards, water leak, etc"
-        )
         setup_logger()
 
-    def transform(self, contract: pd.DataFrame) -> pd.DataFrame:
+    def transform(self, contract: ExtractContract) -> TransformContract:
         """
         Main flow to tranform data colleted from previews steps
 
         Args:
             contract (ExtractContract): contract with raw data to transform
-            flag (DatasetFlag): dataset typo
 
         Raises:
             TransformError: Error occouring during this flow
@@ -54,91 +57,92 @@ class DataTransformer:
         self.logger.info("Running Transform stage")
 
         try:
-            return self.__transform_complaints(contract)
+            return TransformContract(content=self.__transform_complaints(contract))
         except TransformError as exc:
             self.logger.exception(exc)
             raise exc
-
         finally:
             self.logger.info("--- %s minutes ---", round(time.time() - start_time, 2))
 
-    def __transform_complaints(
-        self, contract: pd.DataFrame
-    ) -> List[TransformedDataset]:
+    def __transform_complaints(self, contract: ExtractContract) -> pd.DataFrame:
         """
-        increments the dataset with addtional info:
-            NEW_OLD: str
-            FUNCTION: str -> ML Based (Binary Classification)
-            COMPONET: str -> ML Based (Multi-Class Classification)
-            FAILURE: str -> ML Based (Multi-Class Classification)
-            FULL_STATE: str
-            FAIL_QUARTER: str
-            BINNING: str -> COMPONENT + FAILURE
-            EXTRACTED_DATE: date
-
+        increments the dataset with addtional columns
         Args:
             contract (ExtractContract): dataset collected
 
         Returns:
             List[TransformedDataset]: list of dict, alike a pandas dataframe
         """
-        extract_date: date = contract.extract_date
-        extract_info: List[RetrivedDataset] = contract.raw_data
-        transformed_data: List[TransformedDataset] = []
-
+        transformed = pd.DataFrame(contract.raw_data)
         credentials = self.__load_classifier_credentials()
-        categories = self.__load_categories("Binnings")
+        vfgs = load_vfgs()
+        gsar_token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6ImFSZ2hZU01kbXI2RFZpMTdWVVJtLUJlUENuayJ9.eyJhdWQiOiJ1cm46Z3NhcjpyZXNvdXJjZTp3ZWI6cHJvZCIsImlzcyI6Imh0dHBzOi8vY29ycC5zdHMuZm9yZC5jb20vYWRmcy9zZXJ2aWNlcy90cnVzdCIsImlhdCI6MTcwNzM5ODE2MiwiZXhwIjoxNzA3NDI2OTYyLCJDb21tb25OYW1lIjoiVkRVQVJUMTAiLCJzdWIiOiJWRFVBUlQxMCIsInVpZCI6InZkdWFydDEwIiwiZm9yZEJ1c2luZXNzVW5pdENvZGUiOiJGU0FNUiIsImdpdmVuTmFtZSI6IlZpY3RvciIsInNuIjoiRHVhcnRlIiwiaW5pdGlhbHMiOiJWLiIsIm1haWwiOiJ2ZHVhcnQxMEBmb3JkLmNvbSIsImVtcGxveWVlVHlwZSI6Ik0iLCJzdCI6IkJBIiwiYyI6IkJSQSIsImZvcmRDb21wYW55TmFtZSI6IklOU1QgRVVWQUxETyBMT0RJIE4gUkVHSU9OQUwgQkFISUEiLCJmb3JkRGVwdENvZGUiOiIwNjY0Nzg0MDAwIiwiZm9yZERpc3BsYXlOYW1lIjoiRHVhcnRlLCBWaWN0b3IgKFYuKSIsImZvcmREaXZBYmJyIjoiUFJEIiwiZm9yZERpdmlzaW9uIjoiUEQgT3BlcmF0aW9ucyBhbmQgUXVhbGl0eSIsImZvcmRDb21wYW55Q29kZSI6IjAwMDE1ODM4IiwiZm9yZE1hbmFnZXJDZHNpZCI6Im1tYWdyaTEiLCJmb3JkTVJSb2xlIjoiTiIsImZvcmRTaXRlQ29kZSI6IjY1MzYiLCJmb3JkVXNlclR5cGUiOiJFbXBsb3llZSIsImFwcHR5cGUiOiJQdWJsaWMiLCJhcHBpZCI6InVybjpnc2FyOmNsaWVudGlkOndlYjpwcm9kIiwiYXV0aG1ldGhvZCI6Imh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9hdXRoZW50aWNhdGlvbm1ldGhvZC93aW5kb3dzIiwiYXV0aF90aW1lIjoiMjAyNC0wMi0wOFQxMzoyMTowMi40NjhaIiwidmVyIjoiMS4wIn0.ZLJEWzeff_UG_cTHr5tZizQKmOaJBIJV0f5GGIQH5GYoag2uj9ALzodEzaooH0NdAKHUtS_LkOIGB7B-RgglJ6dITaqTKfnwi6NSpNrUhfsehDmus_byxlfR1HJdBMzz8zrYac_gO0Qr1R76fWGl8hhQCPzDz_GlARbUBSfNRHODBP1CSbbvFX_N3C803Ev4CyTKxjVWinFqCAM18S4_MTLKQ6uVKxM5PACfuhc49Cj9Q45G19P-pUjeFgec1j8IiYW-pgv7lyJiGx45JkImZbRn2R3nkf0Jyy4cSdeDm6cPygN9FuaRRO55DM0MasD0L_hIhvuKNNpqDP-5_7HEHg"
 
-        text = (
-            "Question 1: For this complaint, check if it is related to an ex"
-            + f"ternal part of the car, body exterior, ({self.parts}). If ye"
-            + "s, answer 'F8'. Otherwise, answer 'NOT F8'. Note that most of"
-            + "the problems related to power liftgate electrical problems an"
-            + "d rear view camera are NOT F8. Question 2: For each of these "
-            + "sentences that your answer 1 was 'F8', check if it is related"
-            + f"to only one of the following categories: {list(categories)}."
-            + " You should give only one answer with one answer for Question"
-            + " 1 and one answer for Question 2 in the following format: 'AN"
-            + "SWER 1~~~ANSWER 2'. Note: 'OWD' means 'opened while driving' "
-            + "and 'F&F' means 'fit and finish', for problems related to flu"
-            + "shness and margin. Note 2: For model Escape (2020 forward), t"
-            + "here is a common problem related to door check arm when the c"
-            + "omplaint is related to the door making popping sounds, openin"
-            + "g and closing problens, hinges and welds. If you cannot relat"
-            + "e, answer NOT SURE. Answer in the correct order. If you canno"
-            + "t assist, answer 1, and answer 2 must be NA. You should be ob"
-            + "jective and cold. Never change the answer format mentioned."
+        transformed[["FUNCTION_", "COMPONET", "FAILURE"]] = transformed.apply(
+            lambda row: self.__classify_case(row["CDESCR"], credentials),
+            axis=0,
+            result_type="expand",
         )
-        for data_id, data in enumerate(extract_info):
-            self.logger.debug("%s of %s", data_id, len(extract_info))
+        transformed["BINNING"] = transformed.apply(
+            lambda row: row["COMPONET"] + " | " + row["FAILURE"], axis=0
+        )
+        transformed["FULL_STATE"] = transformed.apply(
+            lambda row: convert_code_into_state(row["STATE_"]), axis=0
+        )
+        transformed["FAIL_QUARTER"] = transformed.apply(
+            lambda row: get_quarter(row["FAIL_DATE"]),
+            axis=0,
+        )
+        transformed["VFG"] = transformed.apply(lambda row: vfgs[row["BINNING"]], axis=0)
+        transformed["FULL_VIN"] = ""
+        transformed[
+            [
+                "PROD_DATE",
+                "VEHICLE_LINE_WERS",
+                "VEHICLE_LINE_GSAR",
+                "VEHICLE_LINE_GLOBAL",
+                "ASSEMBLY_PLANT",
+                "WARRANTY_START_DATE",
+            ]
+        ] = transformed.apply(
+            lambda row: self.__get_info_by_vin(row["FULL_VIN"], gsar_token),
+            axis=0,
+            result_type="expand",
+        )
+        transformed["REPAIR_DATE_1"] = ""
+        transformed["REPAIR_DATE_2"] = ""
+        transformed["FAILURE_MODE"] = transformed.apply(
+            lambda row: classify_binning(row["BINNING"]), axis=0
+        )
+        transformed["MILEAGE_CLASS"] = transformed.apply(
+            lambda row: get_mileage_class(row["MILES"]), axis=0
+        )
+        transformed["EXTRACTED_DATE"] = contract.extract_date
 
-            def get_quarter(date_: str) -> str:
-                if date_ in ("", " ", None) and len(date_) != 8:
-                    return "~"
-                date_obj = datetime.strptime(date_, "%Y%m%d")
-                quarter = (date_obj.month - 1) // 3 + 1
-                return f"{date_obj.year}Q{quarter}"
+        return transformed
 
-            function, component, failure = self.__classify_case(
-                f"\"{data['CDESCR']}\" {text}", credentials["url"], credentials["token"]
-            )
-            binning = (
-                f"{component} | {failure}"
-                if component != "~" and failure != "~"
-                else "~"
-            )
-            dataset: TransformedDataset = {
-                **data,
-                "FUNCTION": function,
-                "COMPONET": component,
-                "FAILURE": failure,
-                "BINNING": binning,
-                "FULL_STATE": self.__convert_code_into_state(str(data["STATE"])),
-                "FAIL_QUARTER": get_quarter(str(data["FAILDATE"])),
-                "EXTRACTED_DATE": extract_date,
-            }  # type: ignore
-            transformed_data.append(dataset)
-        return transformed_data
+    def __get_info_by_vin(self, vin: str, token: str) -> Dict[str, str]:
+        response = httpx.get(
+            str(os.getenv("GSAR_WERS_URL")),
+            params={"vin": vin},
+            headers={"Authorization": f"Bearer {token}"},
+            proxies={
+                "http": "http://internet.ford.com:83",
+                "https": "http://internet.ford.com:83",
+            },
+        )
+        data = dict(response.json())
+        return {
+            key: data[key]
+            for key in [
+                "wersVl",
+                "origWarantDate",
+                "prodDate",
+                "plant",
+                "globVl",
+                "awsVl",
+            ]
+        }
 
     def __load_classifier_credentials(self) -> Dict[str, str]:
         """
@@ -147,28 +151,25 @@ class DataTransformer:
         Returns:
             Dict[str, str]: _description_
         """
-        credentials = {}
-
-        credentials["url"] = str(os.getenv("API_ENDPOINT"))
-
-        credentials["token"] = HttpRequest(
-            str(os.getenv("TOKEN_ENDPOINT"))
-        ).request_token(
-            id_=str(os.getenv("CLIENT_ID")),
-            secret=str(os.getenv("CLIENT_SECRET")),
-            scope=str(os.getenv("SCOPE")),
+        response = httpx.post(
+            str(os.getenv("TOKEN_ENDPOINT")),
+            data={
+                "client_id": str(os.getenv("CLIENT_ID")),
+                "client_secret": str(os.getenv("CLIENT_SECRET")),
+                "scope": str(os.getenv("SCOPE")),
+                "grant_type": "client_credentials",
+            },
+            timeout=160,
         )
-        return credentials
+        return {
+            "url": str(os.getenv("API_ENDPOINT")),
+            "token": response.json()["access_token"],
+        }
 
     @retry([Exception])
     @rate_limiter(70, 1)
     @lru_cache(maxsize=70)
-    def __classify_case(
-        self,
-        text: str,
-        url: str,
-        token: str,
-    ) -> List[str]:
+    def __classify_case(self, complaint: str, credentials: Dict[str, str]) -> List[str]:
         """
         Uses ChatGPT-4.0 to classify each recall by failure mode
 
@@ -183,27 +184,60 @@ class DataTransformer:
         Returns:
             str: result of classificaiton (failure mode)
         """
+        categories = load_categories("Binnings")
+        parts = (
+            "door, window, windshield, wiper, glass, hood, trunk, moonroof, "
+            + "bumper, tail light, pillar, undershield, roof rack, latch, he"
+            + "adlight, door handle, door keypad, window, weatherstripping, "
+            + "side mirror, lighting, swing gate, cowl grille, hard top, ski"
+            + "d plate, sheet metal, running boards, water leak, etc"
+        )
+        text = (
+            "Question 1: For this complaint, check if it is related to an ex"
+            + f"ternal part of the car, body exterior, ({parts}). If yes, an"
+            + "swer 'F8'. Otherwise, answer 'NOT F8'. Note that most of the "
+            + "problems related to power liftgate electrical problems and re"
+            + "ar view camera are NOT F8. Question 2: For each of these sent"
+            + "ences that your answer 1 was 'F8', check if it is related to "
+            + f"only one of the following categories: {list(categories)}. Yo"
+            + "u should give only one answer with one answer for Question 1 "
+            + "and one answer for Question 2 in the following format: 'ANSWE"
+            + "R 1~~~ANSWER 2'. Note: 'OWD' means 'opened while driving' and"
+            + "'F&F' means 'fit and finish', for problems related to flushne"
+            + "ss and margin. Note 2: For model Escape (2020 forward), there"
+            + " is a common problem related to door check arm when the compl"
+            + "aint is related to the door making popping sounds, opening an"
+            + "d closing problens, hinges and welds. If you cannot relate, a"
+            + "nswer NOT SURE. Answer in the correct order. If you cannot as"
+            + "sist, answer 1, and answer 2 must be NA. You should be object"
+            + "ive and cold. Never change the answer format mentioned."
+        )
         content = {
             "model": "gpt-4",
             "context": (
                 "You are a helpful text reader and analyzer. You need to give me 2 answers."
-                + text
             ),  # sets the overall behavior of the assistant.
-            "messages": [{"role": "user", "content": text}],
+            "messages": [{"role": "user", "content": complaint + text}],
             "parameters": {
                 "temperature": 0.05,  # Determines the randomnes of the model's response.
             },
         }
         try:
-            response = HttpRequest.call_external_api(url, token, content)
+            response = httpx.post(
+                credentials["url"],
+                headers={"Authorization": f"Bearer {credentials['token']}"},
+                json=content,
+                timeout=360,
+            )
         except Exception as exc:
             self.logger.exception(exc)
             self.logger.error(exc)
             raise TransformError(str(exc)) from Exception
 
-        if response["status_code"] == 200:
-            return self.__process_response(str(response["message"]))
-
+        if response.status_code == 200:
+            return self.__process_response(
+                response.content.decode("utf-8").split(":")[1].strip("}'").strip('"')
+            )
         return ["NOT CLASSIFIED", "~", "~"]
 
     def __process_response(self, message: str) -> List[str]:
@@ -232,102 +266,5 @@ class DataTransformer:
 
                 component, failure = result.split(" | ")
                 return [function, component, failure]
-        print(message)
+
         return ["NOT CLASSIFIED", "~", "~"]
-
-    def __convert_code_into_state(self, state_code: str) -> str:
-        try:
-            if state_code.isnumeric():
-                return "~"
-            states = {
-                "Alabama": "AL",
-                "Alaska": "AK",
-                "Arizona": "AZ",
-                "Arkansas": "AR",
-                "California": "CA",
-                "Colorado": "CO",
-                "Connecticut": "CT",
-                "Delaware": "DE",
-                "District of Columbia": "DC",
-                "Florida": "FL",
-                "Georgia": "GA",
-                "Hawaii": "HI",
-                "Idaho": "ID",
-                "Illinois": "IL",
-                "Indiana": "IN",
-                "Iowa": "IA",
-                "Kansas": "KS",
-                "Kentucky": "KY",
-                "Louisiana": "LA",
-                "Maine": "ME",
-                "Maryland": "MD",
-                "Massachusetts": "MA",
-                "Michigan": "MI",
-                "Minnesota": "MN",
-                "Mississippi": "MS",
-                "Missouri": "MO",
-                "Montana": "MT",
-                "Nebraska": "NE",
-                "Nevada": "NV",
-                "New Hampshire": "NH",
-                "New Jersey": "NJ",
-                "New Mexico": "NM",
-                "New York": "NY",
-                "North Carolina": "NC",
-                "North Dakota": "ND",
-                "Ohio": "OH",
-                "Oklahoma": "OK",
-                "Oregon": "OR",
-                "Pennsylvania": "PA",
-                "Rhode Island": "RI",
-                "South Carolina": "SC",
-                "South Dakota": "SD",
-                "Tennessee": "TN",
-                "Texas": "TX",
-                "Utah": "UT",
-                "Vermont": "VT",
-                "Virginia": "VA",
-                "Washington": "WA",
-                "West Virginia": "WV",
-                "Wisconsin": "WI",
-                "Wyoming": "WY",
-                "American Samoa": "AS",
-                "Federated States of Micronesia": "FM",
-                "Guam": "GU",
-                "Marshall Islands": "MH",
-                "Commonwealth of the Northern Mariana Islands": "MP",
-                "Palau": "PW",
-                "Puerto Rico": "PR",
-                "U.S. Minor Outlying Islands": "M",
-                "U.S. Virgin Islands": "VI",
-            }
-            if state_code not in states.values():
-                return "~"
-            return [k for k, v in states.items() if v == state_code][0]
-
-        except KeyError:
-            return "~"
-
-    def __load_categories(self, flag: str) -> FrozenSet[str]:
-        """
-        Loads categories for classification based on a flag
-
-        Args:
-            flag (str): describes which type of categories return
-
-        Returns:
-            List[str]: categories filtered by flag
-        """
-        categories = []
-        with open("./data/external/binnings.txt", encoding="utf-8", mode="r") as file:
-            for line in file.readlines():
-                if flag == "Binnings":
-                    categories.append(line.strip("\n"))
-                if flag == "Failures":
-                    if line.find("|") == -1:
-                        continue
-                    categories.append(line.split(" | ")[1].strip("\n"))
-                if flag == "Components":
-                    categories.append(line.split(" | ")[0])
-
-        return frozenset(categories)
