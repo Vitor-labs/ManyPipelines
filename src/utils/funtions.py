@@ -7,6 +7,7 @@ from datetime import datetime
 from typing import FrozenSet, Dict
 
 import httpx
+import pandas as pd
 
 
 def get_quarter(date_: str) -> str:
@@ -21,9 +22,69 @@ def get_quarter(date_: str) -> str:
     """
     if date_ in ("", " ", None) and len(date_) != 8:
         return "~"
-    date_obj = datetime.strptime(date_, "%Y%m%d")
+    date_obj = datetime.strptime(str(date_), "%Y%m%d")
     quarter = (date_obj.month - 1) // 3 + 1
     return f"Q{quarter}"
+
+
+def load_new_models() -> Dict[str, str]:
+    """
+    new vehicle models names for sheet f8
+
+    Returns:
+        Dict[str, str]: dict for replacement
+    """
+    return {
+        "ESCAPE HYBRID": "ESCAPE",
+        "C-MAX HYBRID": "C-MAX",
+        "MILAN HYBRID": "MILAN",
+        "EXPLORER SPORT": "EXPLORER",
+        "EXPLORER SPORT TRAC": "EXPLORER",
+        "FUSION ENERGI": "FUSION",
+        "C-MAX ENERGI": "C-MAX",
+        "F-250": "SUPERDUTY",
+        "F-350": "SUPERDUTY",
+        "F-350 SD": "SUPERDUTY",
+        "F-450": "SUPERDUTY",
+        "F-450 SD": "SUPERDUTY",
+        "F-550": "SUPERDUTY",
+        "F-550 SD": "SUPERDUTY",
+        "SUPERDUTY SD": "SUPERDUTY",
+        "F53": "F-53",
+        "CORSAIR": "CORSAIR / MKC",
+        "MKC": "CORSAIR / MKC",
+        "ZEPHYR": "ZEPHYR / MKZ",
+        "MKZ": "ZEPHYR / MKZ",
+        "NAUTILUS": "NAUTILUS / MKX",
+        "MKX": "NAUTILUS / MKX",
+        "AVIATOR": "AVIATOR / MKT",
+        "MKT": "AVIATOR / MKT",
+        "CONTINENTAL": "CONTINENTAL / MKS",
+        "MKS": "CONTINENTAL / MKS",
+        "E-150": "E-SERIES",
+        "E-250": "E-SERIES",
+        "E-350": "E-SERIES",
+        "E-450": "E-SERIES",
+        # Include the replacements to correct potential duplicated replacements
+        "CORSAIR / CORSAIR / MKC": "CORSAIR / MKC",
+        "ZEPHYR / ZEPHYR / MKZ": "ZEPHYR / MKZ",
+        "NAUTILUS / NAUTILUS / MKX": "NAUTILUS / MKX",
+        "AVIATOR / AVIATOR / MKT": "AVIATOR / MKT",
+        "CONTINENTAL / CONTINENTAL / MKS": "CONTINENTAL / MKS",
+        "EXPLORER TRAC": "EXPLORER",
+    }
+
+
+def load_full_vins() -> Dict[str, str]:
+    """
+    Loads newest full vins.
+
+    Returns:
+        Dict[str, str]: dict with odino as key and full vin as value
+    """
+    df = pd.read_excel("./data/external/NSCCV-000502-20240219.xlsx", sheet_name="VOQS")
+    voq_dict = df.set_index("ODI_ID")["VIN"].to_dict()
+    return voq_dict
 
 
 def get_mileage_class(miles: int) -> str:
