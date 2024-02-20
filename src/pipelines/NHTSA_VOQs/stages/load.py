@@ -15,7 +15,7 @@ from openpyxl.worksheet.worksheet import Worksheet
 
 from src.utils.logger import setup_logger
 from src.errors.load_error import LoadError
-from src.infra.interfaces.db_repository import DBRepositoryInterface
+from src.pipelines.NHTSA_VOQs.contracts.transform_contract import TransformContract
 
 
 class DataLoader:
@@ -27,28 +27,23 @@ class DataLoader:
         load_data: saves processed data in serialized file and database.
     """
 
-    def __init__(self, repository: DBRepositoryInterface) -> None:
-        self.__repository = repository
+    def __init__(self) -> None:
         self.logger = logging.getLogger(__name__)
         setup_logger()
 
-    def load_data(self, data: pd.DataFrame) -> None:
+    def load_data(self, contract: TransformContract) -> None:
         """
         Saves data localy in data/processed directory
 
         Args:
             transform_contract (TransformContract): content processed
-            flag (DatasetFlag): dataset typo to save into filenem or table
-
         Raises:
             LoadError: Error during serialization.
         """
         start_time = time.time()
         self.logger.info("Running Load stage")
         try:
-            self.__save_processed_data_csv(transform_contract.content)
-            for data in transform_contract.content:
-                self.__repository.insert_record(flag.name, data)
+            self.__save_processed_data_csv(contract.content)
             dotenv.set_key(
                 dotenv.find_dotenv(),
                 "LAST_COMPLAINT_WAVE_DATE",
@@ -61,25 +56,17 @@ class DataLoader:
         finally:
             self.logger.info("---% seconds ---\n", round(time.time() - start_time, 2))
 
-    def __save_processed_data_csv(self, content: TransformContract, name: str) -> None:
+    def __save_processed_data_csv(self, content: pd.DataFrame) -> None:
         try:
             today = date.today().strftime("%Y-%m-%d")
-            path = f"./data/processed/NHTSA_{name}_PROCESSED_{today}.csv"
+            path = f"./data/processed/NHTSA_COMPLAINTS_PROCESSED_{today}.csv"
 
-            if len(content) > 0:
-                with open(path, "w", newline="", encoding="utf-8") as file:
-                    writer = csv.DictWriter(file, fieldnames=content[0].keys())
-                    writer.writeheader()
-                    if name == "RECALLS":
-                        writer.writerows(content)
-                    else:
-                        data = [row for row in content if row["FUNCTION_"] == "F8"]
-                        writer.writerows(data)
-            else:
+            if content.shape[0] == 0:
                 print("There is no new data")
+                return
 
-        except csv.Error as exc:
-            raise LoadError(str(exc)) from exc
+            content.to_csv(path, index=False)
+
         except Exception as exc:
             raise LoadError(str(exc)) from exc
 

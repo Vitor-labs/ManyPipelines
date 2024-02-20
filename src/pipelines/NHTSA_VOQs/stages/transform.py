@@ -23,6 +23,8 @@ from src.utils.funtions import (
     get_quarter,
     get_mileage_class,
     classify_binning,
+    load_full_vins,
+    load_new_models,
     load_vfgs,
     create_client,
 )
@@ -74,29 +76,23 @@ class DataTransformer:
         Returns:
             List[TransformedDataset]: list of dict, alike a pandas dataframe
         """
-        transformed = contract.raw_data
+        data = contract.raw_data
         credentials = self.__load_classifier_credentials()
         vfgs = load_vfgs()
+        vins = load_full_vins()
+        new_models = load_new_models()
         gsar_token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6ImFSZ2hZU01kbXI2RFZpMTdWVVJtLUJlUENuayJ9.eyJhdWQiOiJ1cm46Z3NhcjpyZXNvdXJjZTp3ZWI6cHJvZCIsImlzcyI6Imh0dHBzOi8vY29ycC5zdHMuZm9yZC5jb20vYWRmcy9zZXJ2aWNlcy90cnVzdCIsImlhdCI6MTcwODM2ODY3NSwiZXhwIjoxNzA4Mzk3NDc1LCJDb21tb25OYW1lIjoiVkRVQVJUMTAiLCJzdWIiOiJWRFVBUlQxMCIsInVpZCI6InZkdWFydDEwIiwiZm9yZEJ1c2luZXNzVW5pdENvZGUiOiJGU0FNUiIsImdpdmVuTmFtZSI6IlZpY3RvciIsInNuIjoiRHVhcnRlIiwiaW5pdGlhbHMiOiJWLiIsIm1haWwiOiJ2ZHVhcnQxMEBmb3JkLmNvbSIsImVtcGxveWVlVHlwZSI6Ik0iLCJzdCI6IkJBIiwiYyI6IkJSQSIsImZvcmRDb21wYW55TmFtZSI6IklOU1QgRVVWQUxETyBMT0RJIE4gUkVHSU9OQUwgQkFISUEiLCJmb3JkRGVwdENvZGUiOiIwNjY0Nzg0MDAwIiwiZm9yZERpc3BsYXlOYW1lIjoiRHVhcnRlLCBWaWN0b3IgKFYuKSIsImZvcmREaXZBYmJyIjoiUFJEIiwiZm9yZERpdmlzaW9uIjoiUEQgT3BlcmF0aW9ucyBhbmQgUXVhbGl0eSIsImZvcmRDb21wYW55Q29kZSI6IjAwMDE1ODM4IiwiZm9yZE1hbmFnZXJDZHNpZCI6Im1tYWdyaTEiLCJmb3JkTVJSb2xlIjoiTiIsImZvcmRTaXRlQ29kZSI6IjY1MzYiLCJmb3JkVXNlclR5cGUiOiJFbXBsb3llZSIsImFwcHR5cGUiOiJQdWJsaWMiLCJhcHBpZCI6InVybjpnc2FyOmNsaWVudGlkOndlYjpwcm9kIiwiYXV0aG1ldGhvZCI6Imh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9hdXRoZW50aWNhdGlvbm1ldGhvZC93aW5kb3dzIiwiYXV0aF90aW1lIjoiMjAyNC0wMi0xOVQxODo1NjoxNS4zNThaIiwidmVyIjoiMS4wIn0.hrND9dXaq0yTK8D7970t2u1LaHRp9DL5gBPPaQXqJD9BJnBHt8QjHNiFxDo4Cw_7qf-ur3Ofp-2b94-bIF3z8W17xGQUhUWlmmAWdueU4jfDxt264vpQv3eOvh2JOnldTA6s3IzJMaPmO_6iVssj6rH-7nc_2jGez59tCIiSRAnW2fojkcU9ZI9ibVOBXvAZH5HIv7a2GNsQDc7gmbfaVEJ0pE141uOAIRlzbhFFE9qtW2byi7V_CnaONie4LOwW7pl9IVz2aHiHr9I3cj_otGp31c1YtgIYjPQDrBb3MN6aPvCtZrZgE88IqxvGrRNc1DKKgDEuMMzAvRmszs-VAg"
 
-        transformed[["FUNCTION_", "COMPONET", "FAILURE"]] = transformed.apply(
-            lambda row: self.__classify_case(row["CDESCR"], credentials),
-            axis=0,
-            result_type="expand",
+        data["MODELTXT"].resample(new_models)
+        data[["FUNCTION_", "COMPONET", "FAILURE"]] = (
+            data["CDESCR"].apply(lambda row: self.__classify_case(row, credentials["url"], credentials['token'])).to_list()
         )
-        transformed["BINNING"] = transformed.apply(
-            lambda row: row["COMPONET"] + " | " + row["FAILURE"], axis=0
-        )
-        transformed["FULL_STATE"] = transformed.apply(
-            lambda row: convert_code_into_state(row["STATE_"]), axis=0
-        )
-        transformed["FAIL_QUARTER"] = transformed.apply(
-            lambda row: get_quarter(row["FAIL_DATE"]),
-            axis=0,
-        )
-        transformed["VFG"] = transformed.apply(lambda row: vfgs[row["BINNING"]], axis=0)
-        transformed["FULL_VIN"] = ""
-        transformed[
+        data["BINNING"] = data["COMPONET"] + " | " + data["FAILURE"]
+        data["FULL_STATE"] = data["STATE"].apply(convert_code_into_state)
+        data["FAIL_QUARTER"] = data["FAILDATE"].apply(get_quarter)
+        data["VFG"] = data["BINNING"].apply(lambda x: vfgs.get(x, " ~ "))
+        data["FULL_VIN"] = data["ODINO"].apply(lambda x: vins.get(x, " ~ "))
+        data[
             [
                 "PROD_DATE",
                 "VEHICLE_LINE_WERS",
@@ -105,23 +101,16 @@ class DataTransformer:
                 "ASSEMBLY_PLANT",
                 "WARRANTY_START_DATE",
             ]
-        ] = transformed.apply(
-            lambda row: self.__get_info_by_vin(row["FULL_VIN"], gsar_token),
-            axis=0,
-            result_type="expand",
+        ] = data["FULL_VIN"].apply(
+            lambda row: self.__get_info_by_vin(row, gsar_token)
         )
-        transformed["REPAIR_DATE_1"] = ""
-        transformed["REPAIR_DATE_2"] = ""
-        transformed["FAILURE_MODE"] = transformed.apply(
-            lambda row: classify_binning(row["BINNING"]), axis=0
-        )
-        transformed["MILEAGE_CLASS"] = transformed.apply(
-            lambda row: get_mileage_class(row["MILES"]), axis=0
-        )
-        transformed["EXTRACTED_DATE"] = contract.extract_date
-        transformed.to_csv("tranformed_dataset_mock.csv")
+        data["REPAIR_DATE_1"] = ""
+        data["REPAIR_DATE_2"] = ""
+        data["FAILURE_MODE"] = data["BINNING"].apply(classify_binning)
+        data["MILEAGE_CLASS"] = data["MILES"].apply(get_mileage_class)
+        data["EXTRACTED_DATE"] = contract.extract_date
 
-        return transformed
+        return data
 
     def __get_info_by_vin(self, vin: str, token: str) -> Dict[str, str]:
         response = httpx.get(
@@ -134,17 +123,9 @@ class DataTransformer:
             },
         )
         data = dict(response.json())
-        return {
-            key: data[key]
-            for key in [
-                "prodDate",
-                "wersVl",
-                "awsVl",
-                "globVl",
-                "plant",
-                "origWarantDate",
-            ]
-        }
+        data_needed = ["wersVl", "origWarantDate", "prodDate", "plant", "globVl", "awsVl"]
+        
+        return {key: data[key] for key in data_needed if key in data}
 
     def __load_classifier_credentials(self) -> Dict[str, str]:
         """
@@ -172,7 +153,7 @@ class DataTransformer:
     @retry([Exception])
     @rate_limiter(70, 1)
     @lru_cache(maxsize=70)
-    def __classify_case(self, complaint: str, credentials: Dict[str, str]) -> List[str]:
+    def __classify_case(self, complaint: str, url: str, token: str) -> List[str]:
         """
         Uses ChatGPT-4.0 to classify each recall by failure mode
 
@@ -228,8 +209,8 @@ class DataTransformer:
         try:
             with create_client() as client:
                 response = client.post(
-                    credentials["url"],
-                    headers={"Authorization": f"Bearer {credentials['token']}"},
+                    url,
+                    headers={"Authorization": f"Bearer {token}"},
                     json=content,
                     timeout=360,
                 )

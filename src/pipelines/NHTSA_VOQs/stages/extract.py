@@ -76,7 +76,7 @@ class DataExtractor:
                 dataset = pd.read_csv(file, sep="\t", header=None, names=self.columns)
                 # dataset = schema.validate(df)
 
-        df = dataset[
+        return dataset[
             (dataset["MFR_NAME"] == "Ford Motor Company")
             & (
                 pd.to_datetime(dataset["DATEA"], format="%Y%m%d")
@@ -84,13 +84,9 @@ class DataExtractor:
             )
         ]
 
-        df.to_csv("./data/raw/mock_complaints.csv")
-
-        return dataset
-
     def __extract_links_from_page(self, url) -> List:
         with create_client() as client:
-            self.logger.info("Acessing NHSTA datasets...")
+            self.logger.debug("Acessing NHSTA datasets...")
             soup = bs4.BeautifulSoup(client.get(url).text, "html.parser")
 
         complaints = soup.select("#nhtsa_s3_listing > tbody")[3]
