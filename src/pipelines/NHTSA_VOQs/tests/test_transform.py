@@ -10,7 +10,6 @@ import pandas as pd
 from dotenv import load_dotenv, find_dotenv
 
 from src.errors.transform_error import TransformError
-from src.pipelines.NHTSA_VOQs.stages.extract import DataExtractor
 from src.pipelines.NHTSA_VOQs.stages.transform import DataTransformer
 from src.pipelines.NHTSA_VOQs.contracts.extract_contract import ExtractContract
 from src.pipelines.NHTSA_VOQs.contracts.transform_contract import TransformContract

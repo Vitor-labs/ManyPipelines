@@ -14,6 +14,7 @@ from src.pipelines.NHTSA_VOQs.stages.extract import DataExtractor
 def test_extract_sucess():
     """
     Test case for extracting sucess
+    Test OK
     """
     dotenv.load_dotenv(dotenv.find_dotenv())
     try:
