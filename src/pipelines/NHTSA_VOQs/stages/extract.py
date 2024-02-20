@@ -82,7 +82,6 @@ class DataExtractor:
                 pd.to_datetime(dataset["DATEA"], format="%Y%m%d")
                 > pd.Timestamp(str(os.getenv("LAST_COMPLAINT_WAVE_DATE")))
             )
-            & (dataset["YEARTXT"].fillna(0).astype(int) > 2011)
         ]
 
         df.to_csv("./data/raw/mock_complaints.csv")
