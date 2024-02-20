@@ -81,16 +81,22 @@ class DataTransformer:
         vfgs = load_vfgs()
         vins = load_full_vins()
         new_models = load_new_models()
-        gsar_token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6ImFSZ2hZU01kbXI2RFZpMTdWVVJtLUJlUENuayJ9.eyJhdWQiOiJ1cm46Z3NhcjpyZXNvdXJjZTp3ZWI6cHJvZCIsImlzcyI6Imh0dHBzOi8vY29ycC5zdHMuZm9yZC5jb20vYWRmcy9zZXJ2aWNlcy90cnVzdCIsImlhdCI6MTcwODM2ODY3NSwiZXhwIjoxNzA4Mzk3NDc1LCJDb21tb25OYW1lIjoiVkRVQVJUMTAiLCJzdWIiOiJWRFVBUlQxMCIsInVpZCI6InZkdWFydDEwIiwiZm9yZEJ1c2luZXNzVW5pdENvZGUiOiJGU0FNUiIsImdpdmVuTmFtZSI6IlZpY3RvciIsInNuIjoiRHVhcnRlIiwiaW5pdGlhbHMiOiJWLiIsIm1haWwiOiJ2ZHVhcnQxMEBmb3JkLmNvbSIsImVtcGxveWVlVHlwZSI6Ik0iLCJzdCI6IkJBIiwiYyI6IkJSQSIsImZvcmRDb21wYW55TmFtZSI6IklOU1QgRVVWQUxETyBMT0RJIE4gUkVHSU9OQUwgQkFISUEiLCJmb3JkRGVwdENvZGUiOiIwNjY0Nzg0MDAwIiwiZm9yZERpc3BsYXlOYW1lIjoiRHVhcnRlLCBWaWN0b3IgKFYuKSIsImZvcmREaXZBYmJyIjoiUFJEIiwiZm9yZERpdmlzaW9uIjoiUEQgT3BlcmF0aW9ucyBhbmQgUXVhbGl0eSIsImZvcmRDb21wYW55Q29kZSI6IjAwMDE1ODM4IiwiZm9yZE1hbmFnZXJDZHNpZCI6Im1tYWdyaTEiLCJmb3JkTVJSb2xlIjoiTiIsImZvcmRTaXRlQ29kZSI6IjY1MzYiLCJmb3JkVXNlclR5cGUiOiJFbXBsb3llZSIsImFwcHR5cGUiOiJQdWJsaWMiLCJhcHBpZCI6InVybjpnc2FyOmNsaWVudGlkOndlYjpwcm9kIiwiYXV0aG1ldGhvZCI6Imh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9hdXRoZW50aWNhdGlvbm1ldGhvZC93aW5kb3dzIiwiYXV0aF90aW1lIjoiMjAyNC0wMi0xOVQxODo1NjoxNS4zNThaIiwidmVyIjoiMS4wIn0.hrND9dXaq0yTK8D7970t2u1LaHRp9DL5gBPPaQXqJD9BJnBHt8QjHNiFxDo4Cw_7qf-ur3Ofp-2b94-bIF3z8W17xGQUhUWlmmAWdueU4jfDxt264vpQv3eOvh2JOnldTA6s3IzJMaPmO_6iVssj6rH-7nc_2jGez59tCIiSRAnW2fojkcU9ZI9ibVOBXvAZH5HIv7a2GNsQDc7gmbfaVEJ0pE141uOAIRlzbhFFE9qtW2byi7V_CnaONie4LOwW7pl9IVz2aHiHr9I3cj_otGp31c1YtgIYjPQDrBb3MN6aPvCtZrZgE88IqxvGrRNc1DKKgDEuMMzAvRmszs-VAg"
+        gsar_token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6ImFSZ2hZU01kbXI2RFZpMTdWVVJtLUJlUENuayJ9.eyJhdWQiOiJ1cm46Z3NhcjpyZXNvdXJjZTp3ZWI6cHJvZCIsImlzcyI6Imh0dHBzOi8vY29ycC5zdHMuZm9yZC5jb20vYWRmcy9zZXJ2aWNlcy90cnVzdCIsImlhdCI6MTcwODQzNjg0MCwiZXhwIjoxNzA4NDY1NjQwLCJDb21tb25OYW1lIjoiVkRVQVJUMTAiLCJzdWIiOiJWRFVBUlQxMCIsInVpZCI6InZkdWFydDEwIiwiZm9yZEJ1c2luZXNzVW5pdENvZGUiOiJGU0FNUiIsImdpdmVuTmFtZSI6IlZpY3RvciIsInNuIjoiRHVhcnRlIiwiaW5pdGlhbHMiOiJWLiIsIm1haWwiOiJ2ZHVhcnQxMEBmb3JkLmNvbSIsImVtcGxveWVlVHlwZSI6Ik0iLCJzdCI6IkJBIiwiYyI6IkJSQSIsImZvcmRDb21wYW55TmFtZSI6IklOU1QgRVVWQUxETyBMT0RJIE4gUkVHSU9OQUwgQkFISUEiLCJmb3JkRGVwdENvZGUiOiIwNjY0Nzg0MDAwIiwiZm9yZERpc3BsYXlOYW1lIjoiRHVhcnRlLCBWaWN0b3IgKFYuKSIsImZvcmREaXZBYmJyIjoiUFJEIiwiZm9yZERpdmlzaW9uIjoiUEQgT3BlcmF0aW9ucyBhbmQgUXVhbGl0eSIsImZvcmRDb21wYW55Q29kZSI6IjAwMDE1ODM4IiwiZm9yZE1hbmFnZXJDZHNpZCI6Im1tYWdyaTEiLCJmb3JkTVJSb2xlIjoiTiIsImZvcmRTaXRlQ29kZSI6IjY1MzYiLCJmb3JkVXNlclR5cGUiOiJFbXBsb3llZSIsImFwcHR5cGUiOiJQdWJsaWMiLCJhcHBpZCI6InVybjpnc2FyOmNsaWVudGlkOndlYjpwcm9kIiwiYXV0aG1ldGhvZCI6Imh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9hdXRoZW50aWNhdGlvbm1ldGhvZC93aW5kb3dzIiwiYXV0aF90aW1lIjoiMjAyNC0wMi0yMFQxMzo1MjoyMC41NTZaIiwidmVyIjoiMS4wIn0.VT0eZyH7MWY7ituRUHqIljE84niZShvZohGaqXJmn0CvanN86da2N1gEBb2HS9GN4hZLFV650QMSFgbTF0FyQXxgZeN5brI1pC4Xk8Pj1tcp33e2Q2Nu63orghRzqV1I6L8ozR0AwwUfOhNbOCxs6rwAwg-9j0FqQaQ0HNNVDzkEFyTabEXxM0ZZMOu5boMiZEJIt4bbvb7iHSPKeXlHiCZUG21vf50_CPbSTd13PBiUJZEO-ChjDn8_ZLYkRWBsCbv7pxgc6fr8QLf-nX6wjSKx4jwpfJL1ROyKxsmJcvxySFPFgfpd1Dixn0BCSEtR5AFHeDVcZo_stixUH6kDEA"
 
-        data["MODELTXT"].resample(new_models)
-        data[["FUNCTION_", "COMPONET", "FAILURE"]] = (
-            data["CDESCR"].apply(lambda row: self.__classify_case(row, credentials["url"], credentials['token'])).to_list()
-        )
-        data["BINNING"] = data["COMPONET"] + " | " + data["FAILURE"]
+        data["MODELTXT"].replace(new_models)
+        # data[["FUNCTION_", "COMPONET", "FAILURE"]] = (
+        #     data["CDESCR"]
+        #     .apply(
+        #         lambda row: self.__classify_case(
+        #             row, credentials["url"], credentials["token"]
+        #         )
+        #     )
+        #     .to_list()
+        # )
+        # data["BINNING"] = data["COMPONET"] + " | " + data["FAILURE"]
         data["FULL_STATE"] = data["STATE"].apply(convert_code_into_state)
         data["FAIL_QUARTER"] = data["FAILDATE"].apply(get_quarter)
-        data["VFG"] = data["BINNING"].apply(lambda x: vfgs.get(x, " ~ "))
+        # data["VFG"] = data["BINNING"].apply(lambda x: vfgs.get(x, " ~ "))
         data["FULL_VIN"] = data["ODINO"].apply(lambda x: vins.get(x, " ~ "))
         data[
             [
@@ -101,12 +107,14 @@ class DataTransformer:
                 "ASSEMBLY_PLANT",
                 "WARRANTY_START_DATE",
             ]
-        ] = data["FULL_VIN"].apply(
-            lambda row: self.__get_info_by_vin(row, gsar_token)
+        ] = (
+            data["FULL_VIN"]
+            .apply(lambda row: self.__get_info_by_vin(row, gsar_token))
+            .to_list()
         )
         data["REPAIR_DATE_1"] = ""
         data["REPAIR_DATE_2"] = ""
-        data["FAILURE_MODE"] = data["BINNING"].apply(classify_binning)
+        # data["FAILURE_MODE"] = data["BINNING"].apply(classify_binning)
         data["MILEAGE_CLASS"] = data["MILES"].apply(get_mileage_class)
         data["EXTRACTED_DATE"] = contract.extract_date
 
@@ -118,13 +126,19 @@ class DataTransformer:
             params={"vin": vin},
             headers={"Authorization": f"Bearer {token}"},
             proxies={
-                "http": "http://internet.ford.com:83",
-                "https": "http://internet.ford.com:83",
+                "http://": "http://internet.ford.com:83",
+                "https://": "http://internet.ford.com:83",
             },
         )
         data = dict(response.json())
-        data_needed = ["wersVl", "origWarantDate", "prodDate", "plant", "globVl", "awsVl"]
-        
+        data_needed = [
+            "wersVl",
+            "origWarantDate",
+            "prodDate",
+            "plant",
+            "globVl",
+            "awsVl",
+        ]
         return {key: data[key] for key in data_needed if key in data}
 
     def __load_classifier_credentials(self) -> Dict[str, str]:
@@ -207,13 +221,12 @@ class DataTransformer:
             },
         }
         try:
-            with create_client() as client:
-                response = client.post(
-                    url,
-                    headers={"Authorization": f"Bearer {token}"},
-                    json=content,
-                    timeout=360,
-                )
+            response = httpx.post(
+                url,
+                headers={"Authorization": f"Bearer {token}"},
+                json=content,
+                timeout=360,
+            )
         except Exception as exc:
             self.logger.exception(exc)
             self.logger.error(exc)

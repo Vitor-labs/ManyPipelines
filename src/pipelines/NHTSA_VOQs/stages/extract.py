@@ -60,6 +60,7 @@ class DataExtractor:
         finally:
             self.logger.debug("--- %s seconds ---", round(time.time() - start_time, 2))
 
+    @pa.check_output(schema, lazy=True)
     def __mount_dataset_from_content(self, info: Dict) -> pd.DataFrame:
         self.logger.debug("\nMounting extracted Dataset")
 
@@ -73,13 +74,19 @@ class DataExtractor:
 
         with ZipFile(BytesIO(resp)) as myzip:
             with myzip.open("COMPLAINTS_RECEIVED_2020-2024.txt") as file:
-                dataset = pd.read_csv(file, sep="\t", header=None, names=self.columns)
-                # dataset = schema.validate(df)
+                df = pd.read_csv(file, sep="\t", header=None, names=self.columns)
+                df.drop_duplicates(subset=["ODINO"], inplace=True)
 
-        return dataset[
-            (dataset["MFR_NAME"] == "Ford Motor Company")
+                df["MILES"] = df["MILES"].fillna(0).astype(int)
+                df["NUM_CYLS"] = df["NUM_CYLS"].fillna(0).astype(int)
+                df["OCCURENCES"] = df["OCCURENCES"].fillna(0).astype(int)
+                df["VEH_SPEED"] = df["VEH_SPEED"].fillna(0).astype(int)
+                df["YEARTXT"] = df["MILES"].fillna(0).astype(int)
+
+        return df[
+            (df["MFR_NAME"] == "Ford Motor Company")
             & (
-                pd.to_datetime(dataset["DATEA"], format="%Y%m%d")
+                pd.to_datetime(df["DATEA"], format="%Y%m%d")
                 > pd.Timestamp(str(os.getenv("LAST_COMPLAINT_WAVE_DATE")))
             )
         ]

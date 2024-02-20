@@ -23,5 +23,8 @@ def test_extract_sucess():
 
         assert "ODINO" in dataset.raw_data.columns
         assert isinstance(dataset.raw_data, DataFrame)
+
+        dataset.raw_data.to_csv("./data/raw/mock_dataset.csv")
+
     except ExtractError as exc:
         pytest.fail(f"Extract error catched: {exc}")

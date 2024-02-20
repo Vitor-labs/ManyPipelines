@@ -38,10 +38,10 @@ def test_extract_sucess(setup):
         tranformer = DataTransformer()
         dataset = tranformer.transform(contract=setup)
 
-        dataset.content.to_csv("tranformed_dataset_mock.csv")
-
         assert isinstance(dataset, TransformContract)
         assert "FUNCTION_" in dataset.content.columns
+
+        dataset.content.to_csv("tranformed_dataset_mock.csv")
 
     except TransformError as exc:
         pytest.fail(f"Extract error catched: {exc}")
