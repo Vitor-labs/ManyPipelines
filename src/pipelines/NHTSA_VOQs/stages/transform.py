@@ -15,7 +15,7 @@ import pandas as pd
 from src.errors.transform_error import TransformError
 from src.pipelines.NHTSA_VOQs.contracts.extract_contract import ExtractContract
 from src.pipelines.NHTSA_VOQs.contracts.transform_contract import TransformContract
-
+from src.utils.logger import setup_logger
 from src.utils.decorators import rate_limiter, retry
 from src.utils.funtions import (
     load_categories,
@@ -28,7 +28,6 @@ from src.utils.funtions import (
     load_vfgs,
     create_client,
 )
-from src.utils.logger import setup_logger
 
 
 class DataTransformer:
@@ -109,7 +108,13 @@ class DataTransformer:
             ]
         ] = (
             data["FULL_VIN"]
-            .apply(lambda row: self.__get_info_by_vin(row, gsar_token))
+            .apply(
+                lambda vin: (
+                    self.__get_info_by_vin(vin, gsar_token)
+                    if vin and vin[-1] != "*"
+                    else ["", "", "", "", "", ""]
+                )
+            )
             .to_list()
         )
         data["REPAIR_DATE_1"] = ""
@@ -131,15 +136,19 @@ class DataTransformer:
             },
         )
         data = dict(response.json())
-        data_needed = [
-            "wersVl",
-            "origWarantDate",
-            "prodDate",
-            "plant",
-            "globVl",
-            "awsVl",
-        ]
-        return {key: data[key] for key in data_needed if key in data}
+        retrived = {
+            "wersVl": "",
+            "origWarantDate": "",
+            "prodDate": "",
+            "plant": "",
+            "globVl": "",
+            "awsVl": "",
+        }
+        for key, value in data:
+            if key in retrived:
+                retrived[key] = value
+
+        return retrived
 
     def __load_classifier_credentials(self) -> Dict[str, str]:
         """

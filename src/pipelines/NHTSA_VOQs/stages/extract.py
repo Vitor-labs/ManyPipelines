@@ -5,7 +5,6 @@ This module defines the basic flow of data Extraction from NHTSA portal
 import os
 import time
 import logging
-
 from io import BytesIO
 from zipfile import ZipFile
 from typing import Dict, List
@@ -17,10 +16,10 @@ import pandera as pa
 
 from src.utils.decorators import retry
 from src.utils.logger import setup_logger
+from src.utils.funtions import create_client
 from src.errors.extract_error import ExtractError
 from src.pipelines.NHTSA_VOQs.contracts.schemas.extract import schema
 from src.pipelines.NHTSA_VOQs.contracts.extract_contract import ExtractContract
-from src.utils.funtions import create_client
 
 
 class DataExtractor:
@@ -64,10 +63,10 @@ class DataExtractor:
     def __mount_dataset_from_content(self, info: Dict) -> pd.DataFrame:
         self.logger.debug("\nMounting extracted Dataset")
 
-        if date.strftime(info["updated_date"], "%Y-%m-%d") >= str(
-            os.getenv("LAST_COMPLAINT_WAVE_DATE")
-        ):
-            raise ExtractError("Datasets not updated")
+        # if (updated_on := date.strftime(info["updated_date"], "%Y-%m-%d")) >= str(
+        #     os.getenv("LAST_COMPLAINT_WAVE_DATE")
+        # ):
+        #     raise ExtractError(f"Datasets not updated on {updated_on}")
 
         with create_client() as client:
             resp = client.get(info["url"], timeout=160).content
@@ -86,7 +85,7 @@ class DataExtractor:
         return df[
             (df["MFR_NAME"] == "Ford Motor Company")
             & (
-                pd.to_datetime(df["DATEA"], format="%Y%m%d")
+                pd.to_datetime(df["DATEA"], format="%Y/%m/%d")
                 > pd.Timestamp(str(os.getenv("LAST_COMPLAINT_WAVE_DATE")))
             )
         ]
