@@ -7,6 +7,7 @@ data with:
 """
 
 from typing import NamedTuple
-from typing import List, Dict
 
-TransformContract = NamedTuple("TransformContract", [("content", List[Dict[str, str]])])
+from pandas import DataFrame
+
+TransformContract = NamedTuple("TransformContract", [("content", DataFrame)])

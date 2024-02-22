@@ -3,15 +3,17 @@ This module defines the basic flow of data Tranformation from data
 retrived from NHTSA.
 """
 
-import os
 import time
 import logging
-from typing import Dict, List
-from functools import lru_cache
-from src.utils.funtions import load_classifier_credentials
+from typing import Dict
 
+import httpx
+import pandas as pd
 
+from src.utils.decorators import retry
 from src.utils.logger import setup_logger
+from src.utils.funtions import load_categories, load_classifier_credentials
+
 from src.errors.transform_error import TransformError
 from src.pipelines.GRID.contracts.extract_contract import ExtractContract
 from src.pipelines.GRID.contracts.transform_contract import TransformContract
@@ -46,48 +48,46 @@ class DataTransformer:
         self.logger.info("Running Transform stage")
 
         try:
-            return TransformContract(
-                content=self.__process_new_issue(contract.raw_data)
-            )
+            return TransformContract(content=self.__process_new_issue(contract))
         except TransformError as exc:
             self.logger.exception(exc)
             raise exc
         finally:
             self.logger.info("--- %s minutes ---", round(time.time() - start_time, 2))
 
-    def __process_new_issue(
-        self, new_issues: List[Dict[str, str]]
-    ) -> List[Dict[str, str]]:
-        if len(new_issues) == 0:
-            print("No new data to Classify")
-            return []
+    def __process_new_issue(self, contract: ExtractContract) -> pd.DataFrame:
+        """
+        Processes extracted dataset, add new column binning, translate column
+        Afected Vehicles to common vehicle. TODO: translate vehicle
+
+        Args:
+            contract (ExtractContract): dataset extracted from grid sheet.
+
+        Returns:
+            pd.DataFrame: dataframe transformed
+        """
+        if len(contract.raw_data) == 0:
+            raise TransformError("No new data to Classify")
 
         credentials = load_classifier_credentials()
-        processeds = []
-        # TODO: get real car model
-        # TODO: binning
-        for issue in new_issues:
-            issue["Affected Vehicles"] = self.__resume_vehicle(
-                issue["Affected Vehicles"]
-            )
-            issue["Binning"] = self.__classify_case(issue[["", ""]], credentials)
-
-        return processeds
-
-    def __resume_vehicle(self, vehicle: str) -> str:
-        return vehicle
+        issues = pd.DataFrame(contract.raw_data)
+        issues["Extracted Date"] = contract.extract_date
+        issues["Binning"] = issues.apply(
+            lambda row: self.__classify_case(
+                row["Issue Title"] + "," + row["Description"], credentials
+            ),
+            axis=1,
+        )
+        return issues
 
     @retry([Exception])
-    @rate_limiter(70, 1)
-    @lru_cache(maxsize=70)
-    def __classify_case(self, complaint: str, url: str, token: str) -> List[str]:
+    def __classify_case(self, data: str, credentials: Dict[str, str]) -> str:
         """
         Uses ChatGPT-4.0 to classify each recall by failure mode
 
         Args:
-            decription (str): complaint description
-            url (str): api endpoint
-            token (str): authorization token
+            data (str): issue title and description
+            credentials (Dict[str, str]): api endpoint and authorization token
 
         Raises:
             exc: ConnectionError, API not responded
@@ -95,47 +95,33 @@ class DataTransformer:
         Returns:
             str: result of classificaiton (failure mode)
         """
-        parts = (
-            "door, window, windshield, wiper, glass, hood, trunk, moonroof, "
-            + "bumper, tail light, pillar, undershield, roof rack, latch, he"
-            + "adlight, door handle, door keypad, window, weatherstripping, "
-            + "side mirror, lighting, swing gate, cowl grille, hard top, ski"
-            + "d plate, sheet metal, running boards, water leak, etc"
-        )
         text = (
-            "Question 1: For this complaint, check if it is related to an ex"
-            + f"ternal part of the car, body exterior, ({parts}). If yes, an"
-            + "swer 'F8'. Otherwise, answer 'NOT F8'. Note that most of the "
-            + "problems related to power liftgate electrical problems and re"
-            + "ar view camera are NOT F8. Question 2: For each of these sent"
-            + "ences that your answer 1 was 'F8', check if it is related to "
-            + f"only one of the following categories: {list(categories)}. Yo"
-            + "u should give only one answer with one answer for Question 1 "
-            + "and one answer for Question 2 in the following format: 'ANSWE"
-            + "R 1~~~ANSWER 2'. Note: 'OWD' means 'opened while driving' and"
-            + "'F&F' means 'fit and finish', for problems related to flushne"
-            + "ss and margin. Note 2: For model Escape (2020 forward), there"
-            + " is a common problem related to door check arm when the compl"
-            + "aint is related to the door making popping sounds, opening an"
-            + "d closing problens, hinges and welds. If you cannot relate, a"
-            + "nswer NOT SURE. Answer in the correct order. If you cannot as"
-            + "sist, answer 1, and answer 2 must be NA. You should be object"
-            + "ive and cold. Never change the answer format mentioned."
+            f"{data}. For this sentences that, check if it is related to onl"
+            + f"y one of the following categories: {list(load_categories())}"
+            + ". Your answer must be only one of these categories. Note: 'OW"
+            + "D' means 'opened while driving' and 'F&F' means 'fit and fini"
+            + "sh', for problems related to flushness and margin. Note 2: Fo"
+            + "r model Escape (2020 forward), there is a common problem rela"
+            + "ted to door check arm when the complaint is related to the do"
+            + "or making popping sounds, opening and closing problens, hinge"
+            + "s and welds. If you cannot assist, answer NA. You should be o"
+            + "bjective and cold. Never change the answer format mentioned a"
+            + "nd Never create a new categorie."
         )
         content = {
             "model": "gpt-4",
             "context": (
                 "You are a helpful text reader and analyzer. You need to give me 2 answers."
             ),  # sets the overall behavior of the assistant.
-            "messages": [{"role": "user", "content": complaint + text}],
+            "messages": [{"role": "user", "content": text}],
             "parameters": {
                 "temperature": 0.05,  # Determines the randomnes of the model's response.
             },
         }
         try:
             response = httpx.post(
-                url,
-                headers={"Authorization": f"Bearer {token}"},
+                credentials["url"],
+                headers={"Authorization": f"Bearer {credentials['token']}"},
                 json=content,
                 timeout=360,
             )
@@ -144,8 +130,11 @@ class DataTransformer:
             self.logger.error(exc)
             raise TransformError(str(exc)) from Exception
 
+        self.logger.info("New response: %s", response.status_code)
         if response.status_code == 200:
-            return self.__process_response(
-                response.content.decode("utf-8").split(":")[1].strip("}'").strip('"')
-            )
-        return ["NOT CLASSIFIED", "~", "~"]
+            message = response.json()["content"]
+            if "\n" in message:
+                return message.split("\n")[0]
+
+            return message
+        return "NOT CLASSIFIED"
