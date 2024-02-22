@@ -3,6 +3,7 @@ This module defines the basic flow of data Extraction from NHTSA portal
 """
 
 import logging
+import os
 from typing import Dict, List
 from datetime import date
 
@@ -62,17 +63,25 @@ class DataExtractor:
         """
         new_issues = []
 
-        if data["Issue #"].iloc[0] == "24-124":
+        if data["Issue #"].iloc[0] == str(os.getenv("GRID_LAST_ISSUE")):
             print("No new issue found")
             for _, row in data.iterrows():
                 if row["Issue #"] != "24-100":
                     new_issues.append(
                         row[
                             [
+                                "Function",
                                 "Issue #",
                                 "Issue Title",
                                 "Description",
                                 "Affected Vehicles",
+                                "Days Open in CCRG",
+                                "Days Open in CSF",
+                                "Days Open in GOV",
+                                "Days Open in EPRC",
+                                "Field Service Action #",
+                                "Overall Status",
+                                "GRID creation date",
                             ]
                         ].to_dict()
                     )

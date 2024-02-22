@@ -325,3 +325,27 @@ def create_client() -> httpx.Client:
         mounts=proxy_mounts,
         verify=False,
     )
+
+
+def load_classifier_credentials() -> Dict[str, str]:
+    """
+    create a dict with classifier endpoint and auth.
+
+    Returns:
+        Dict[str, str]: _description_
+    """
+    with create_client() as client:
+        response = client.post(
+            str(os.getenv("TOKEN_ENDPOINT")),
+            data={
+                "client_id": str(os.getenv("CLIENT_ID")),
+                "client_secret": str(os.getenv("CLIENT_SECRET")),
+                "scope": str(os.getenv("SCOPE")),
+                "grant_type": "client_credentials",
+            },
+            timeout=160,
+        )
+    return {
+        "url": str(os.getenv("API_ENDPOINT")),
+        "token": response.json()["access_token"],
+    }

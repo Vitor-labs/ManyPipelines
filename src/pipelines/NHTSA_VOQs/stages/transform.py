@@ -23,6 +23,7 @@ from src.utils.funtions import (
     get_quarter,
     get_mileage_class,
     classify_binning,
+    load_classifier_credentials,
     load_full_vins,
     load_new_models,
     load_vfgs,
@@ -76,7 +77,7 @@ class DataTransformer:
             List[TransformedDataset]: list of dict, alike a pandas dataframe
         """
         data = contract.raw_data
-        credentials = self.__load_classifier_credentials()
+        credentials = load_classifier_credentials()
         vfgs = load_vfgs()
         vins = load_full_vins()
         new_models = load_new_models()
@@ -149,29 +150,6 @@ class DataTransformer:
                 retrived[key] = value
 
         return retrived
-
-    def __load_classifier_credentials(self) -> Dict[str, str]:
-        """
-        create a dict with classifier endpoint and auth.
-
-        Returns:
-            Dict[str, str]: _description_
-        """
-        with create_client() as client:
-            response = client.post(
-                str(os.getenv("TOKEN_ENDPOINT")),
-                data={
-                    "client_id": str(os.getenv("CLIENT_ID")),
-                    "client_secret": str(os.getenv("CLIENT_SECRET")),
-                    "scope": str(os.getenv("SCOPE")),
-                    "grant_type": "client_credentials",
-                },
-                timeout=160,
-            )
-        return {
-            "url": str(os.getenv("API_ENDPOINT")),
-            "token": response.json()["access_token"],
-        }
 
     @retry([Exception])
     @rate_limiter(70, 1)
