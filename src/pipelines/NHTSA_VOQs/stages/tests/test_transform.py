@@ -25,9 +25,9 @@ def setup():
     """
     load_dotenv(find_dotenv())
 
-    mock = pd.read_csv("./data/raw/mock_complaints.csv")
+    mock = pd.read_csv("./data/raw/mock_dataset.csv")
 
-    return ExtractContract(raw_data=mock, extract_date=date(2024, 2, 19))
+    return ExtractContract(raw_data=mock, extract_date=date(2024, 2, 22))
 
 
 def test_extract_sucess(setup):
@@ -39,7 +39,7 @@ def test_extract_sucess(setup):
         dataset = tranformer.transform(contract=setup)
 
         assert isinstance(dataset, TransformContract)
-        assert "FUNCTION_" in dataset.content.columns
+        assert "PROD_DATE" in dataset.content.columns
 
         dataset.content.to_csv("tranformed_dataset_mock.csv")
 
