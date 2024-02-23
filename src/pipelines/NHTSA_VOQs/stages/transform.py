@@ -6,7 +6,7 @@ retrived from NHTSA.
 import os
 import time
 import logging
-from typing import Dict, List
+from typing import List
 from functools import lru_cache
 
 import httpx
@@ -77,11 +77,11 @@ class DataTransformer:
             List[TransformedDataset]: list of dict, alike a pandas dataframe
         """
         data = contract.raw_data
-        credentials = load_classifier_credentials()
         vfgs = load_vfgs()
         vins = load_full_vins()
         new_models = load_new_models()
-        gsar_token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6ImFSZ2hZU01kbXI2RFZpMTdWVVJtLUJlUENuayJ9.eyJhdWQiOiJ1cm46Z3NhcjpyZXNvdXJjZTp3ZWI6cHJvZCIsImlzcyI6Imh0dHBzOi8vY29ycC5zdHMuZm9yZC5jb20vYWRmcy9zZXJ2aWNlcy90cnVzdCIsImlhdCI6MTcwODQzNjg0MCwiZXhwIjoxNzA4NDY1NjQwLCJDb21tb25OYW1lIjoiVkRVQVJUMTAiLCJzdWIiOiJWRFVBUlQxMCIsInVpZCI6InZkdWFydDEwIiwiZm9yZEJ1c2luZXNzVW5pdENvZGUiOiJGU0FNUiIsImdpdmVuTmFtZSI6IlZpY3RvciIsInNuIjoiRHVhcnRlIiwiaW5pdGlhbHMiOiJWLiIsIm1haWwiOiJ2ZHVhcnQxMEBmb3JkLmNvbSIsImVtcGxveWVlVHlwZSI6Ik0iLCJzdCI6IkJBIiwiYyI6IkJSQSIsImZvcmRDb21wYW55TmFtZSI6IklOU1QgRVVWQUxETyBMT0RJIE4gUkVHSU9OQUwgQkFISUEiLCJmb3JkRGVwdENvZGUiOiIwNjY0Nzg0MDAwIiwiZm9yZERpc3BsYXlOYW1lIjoiRHVhcnRlLCBWaWN0b3IgKFYuKSIsImZvcmREaXZBYmJyIjoiUFJEIiwiZm9yZERpdmlzaW9uIjoiUEQgT3BlcmF0aW9ucyBhbmQgUXVhbGl0eSIsImZvcmRDb21wYW55Q29kZSI6IjAwMDE1ODM4IiwiZm9yZE1hbmFnZXJDZHNpZCI6Im1tYWdyaTEiLCJmb3JkTVJSb2xlIjoiTiIsImZvcmRTaXRlQ29kZSI6IjY1MzYiLCJmb3JkVXNlclR5cGUiOiJFbXBsb3llZSIsImFwcHR5cGUiOiJQdWJsaWMiLCJhcHBpZCI6InVybjpnc2FyOmNsaWVudGlkOndlYjpwcm9kIiwiYXV0aG1ldGhvZCI6Imh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9hdXRoZW50aWNhdGlvbm1ldGhvZC93aW5kb3dzIiwiYXV0aF90aW1lIjoiMjAyNC0wMi0yMFQxMzo1MjoyMC41NTZaIiwidmVyIjoiMS4wIn0.VT0eZyH7MWY7ituRUHqIljE84niZShvZohGaqXJmn0CvanN86da2N1gEBb2HS9GN4hZLFV650QMSFgbTF0FyQXxgZeN5brI1pC4Xk8Pj1tcp33e2Q2Nu63orghRzqV1I6L8ozR0AwwUfOhNbOCxs6rwAwg-9j0FqQaQ0HNNVDzkEFyTabEXxM0ZZMOu5boMiZEJIt4bbvb7iHSPKeXlHiCZUG21vf50_CPbSTd13PBiUJZEO-ChjDn8_ZLYkRWBsCbv7pxgc6fr8QLf-nX6wjSKx4jwpfJL1ROyKxsmJcvxySFPFgfpd1Dixn0BCSEtR5AFHeDVcZo_stixUH6kDEA"
+        credentials = load_classifier_credentials()
+        gsar_token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6ImFSZ2hZU01kbXI2RFZpMTdWVVJtLUJlUENuayJ9.eyJhdWQiOiJ1cm46Z3NhcjpyZXNvdXJjZTp3ZWI6cHJvZCIsImlzcyI6Imh0dHBzOi8vY29ycC5zdHMuZm9yZC5jb20vYWRmcy9zZXJ2aWNlcy90cnVzdCIsImlhdCI6MTcwODY5OTA2NCwiZXhwIjoxNzA4NzI3ODY0LCJDb21tb25OYW1lIjoiVkRVQVJUMTAiLCJzdWIiOiJWRFVBUlQxMCIsInVpZCI6InZkdWFydDEwIiwiZm9yZEJ1c2luZXNzVW5pdENvZGUiOiJGU0FNUiIsImdpdmVuTmFtZSI6IlZpY3RvciIsInNuIjoiRHVhcnRlIiwiaW5pdGlhbHMiOiJWLiIsIm1haWwiOiJ2ZHVhcnQxMEBmb3JkLmNvbSIsImVtcGxveWVlVHlwZSI6Ik0iLCJzdCI6IkJBIiwiYyI6IkJSQSIsImZvcmRDb21wYW55TmFtZSI6IklOU1QgRVVWQUxETyBMT0RJIE4gUkVHSU9OQUwgQkFISUEiLCJmb3JkRGVwdENvZGUiOiIwNjY0Nzg0MDAwIiwiZm9yZERpc3BsYXlOYW1lIjoiRHVhcnRlLCBWaWN0b3IgKFYuKSIsImZvcmREaXZBYmJyIjoiUFJEIiwiZm9yZERpdmlzaW9uIjoiUEQgT3BlcmF0aW9ucyBhbmQgUXVhbGl0eSIsImZvcmRDb21wYW55Q29kZSI6IjAwMDE1ODM4IiwiZm9yZE1hbmFnZXJDZHNpZCI6Im1tYWdyaTEiLCJmb3JkTVJSb2xlIjoiTiIsImZvcmRTaXRlQ29kZSI6IjY1MzYiLCJmb3JkVXNlclR5cGUiOiJFbXBsb3llZSIsImFwcHR5cGUiOiJQdWJsaWMiLCJhcHBpZCI6InVybjpnc2FyOmNsaWVudGlkOndlYjpwcm9kIiwiYXV0aG1ldGhvZCI6Imh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9hdXRoZW50aWNhdGlvbm1ldGhvZC93aW5kb3dzIiwiYXV0aF90aW1lIjoiMjAyNC0wMi0yM1QxNDo0Mjo0NC44MTFaIiwidmVyIjoiMS4wIn0.dm1oBbsiudh4cT22D4bo719BPpgZXsWyIT5mF_jch47yHJOP5GkSoUgjQtAHOx_5iwU39ugBVxrHCBBS4w6_NDQWrR2nmmmepAYe-6NG6eZWFaJjDTreZ04iKzc46WOiH_uINYozAHyKgYecgtCo2ENc7cDvh-bXtF6GDQlZxCuSnpRxNnEwWwTMCg3YLZZnM5Mqht3eW29ZyY_WYk6fPaz1oOcX089s_3uI3GbDd4HCOUrJ99LdrqgSR4kTr0l4zE2pkT_IWUxp7zJ-quT_r9DJMRsX2qp0QQxb2MWJBU5o-oUm2Sb9xDC31gv7-_3ZC30HMfKnItCTrFm4p7pKRQ"
 
         data["MODELTXT"].replace(new_models)
         # data[["FUNCTION_", "COMPONET", "FAILURE"]] = (
@@ -109,13 +109,7 @@ class DataTransformer:
             ]
         ] = (
             data["FULL_VIN"]
-            .apply(
-                lambda vin: (
-                    self.__get_info_by_vin(vin, gsar_token)
-                    if vin and vin[-1] != "*"
-                    else ["", "", "", "", "", ""]
-                )
-            )
+            .apply(lambda vin: self.__get_info_by_vin(vin, gsar_token))
             .to_list()
         )
         data["REPAIR_DATE_1"] = ""
@@ -126,30 +120,26 @@ class DataTransformer:
 
         return data
 
-    def __get_info_by_vin(self, vin: str, token: str) -> Dict[str, str]:
-        response = httpx.get(
-            str(os.getenv("GSAR_WERS_URL")),
-            params={"vin": vin},
-            headers={"Authorization": f"Bearer {token}"},
-            proxies={
-                "http://": "http://internet.ford.com:83",
-                "https://": "http://internet.ford.com:83",
-            },
-        )
-        data = dict(response.json())
-        retrived = {
-            "wersVl": "",
-            "origWarantDate": "",
-            "prodDate": "",
-            "plant": "",
-            "globVl": "",
-            "awsVl": "",
-        }
-        for key, value in data:
-            if key in retrived:
-                retrived[key] = value
+    def __get_info_by_vin(self, vin: str, token: str) -> list[str]:
+        keys = ["wersVl", "origWarantDate", "prodDate", "plant", "globVl", "awsVl"]
+        retrived = dict.fromkeys(keys, "")
 
-        return retrived
+        if vin and vin[-1] != "*":
+            response = httpx.get(
+                str(os.getenv("GSAR_WERS_URL")),
+                params={"vin": vin},
+                headers={"Authorization": f"Bearer {token}"},
+                proxies={
+                    "http://": "http://internet.ford.com:83",
+                    "https://": "http://internet.ford.com:83",
+                },
+            )
+            data = dict(response.json())
+            for key in keys:
+                if key in data:
+                    retrived[key] = str(data.get(key))
+
+        return list(retrived.values())
 
     @retry([Exception])
     @rate_limiter(70, 1)
@@ -220,9 +210,7 @@ class DataTransformer:
             raise TransformError(str(exc)) from Exception
 
         if response.status_code == 200:
-            return self.__process_response(
-                response.content.decode("utf-8").split(":")[1].strip("}'").strip('"')
-            )
+            return self.__process_response(response.json()["content"])
         return ["NOT CLASSIFIED", "~", "~"]
 
     def __process_response(self, message: str) -> List[str]:

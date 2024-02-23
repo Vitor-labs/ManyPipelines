@@ -59,14 +59,14 @@ class DataExtractor:
         finally:
             self.logger.debug("--- %s seconds ---", round(time.time() - start_time, 2))
 
-    @pa.check_output(schema, lazy=True)
+    # @pa.check_output(schema, lazy=True)
     def __mount_dataset_from_content(self, info: Dict) -> pd.DataFrame:
         self.logger.debug("\nMounting extracted Dataset")
 
-        # if (updated_on := date.strftime(info["updated_date"], "%Y-%m-%d")) >= str(
-        #     os.getenv("LAST_COMPLAINT_WAVE_DATE")
-        # ):
-        #     raise ExtractError(f"Datasets not updated on {updated_on}")
+        if (updated_on := date.strftime(info["updated_date"], "%Y-%m-%d")) >= str(
+            os.getenv("LAST_COMPLAINT_WAVE_DATE")
+        ):
+            raise ExtractError(f"Dataset last update on {updated_on}")
 
         with create_client() as client:
             resp = client.get(info["url"], timeout=160).content
@@ -76,18 +76,9 @@ class DataExtractor:
                 df = pd.read_csv(file, sep="\t", header=None, names=self.columns)
                 df.drop_duplicates(subset=["ODINO"], inplace=True)
 
-                df["MILES"] = df["MILES"].fillna(0).astype(int)
-                df["NUM_CYLS"] = df["NUM_CYLS"].fillna(0).astype(int)
-                df["OCCURENCES"] = df["OCCURENCES"].fillna(0).astype(int)
-                df["VEH_SPEED"] = df["VEH_SPEED"].fillna(0).astype(int)
-                df["YEARTXT"] = df["MILES"].fillna(0).astype(int)
-
         return df[
             (df["MFR_NAME"] == "Ford Motor Company")
-            & (
-                pd.to_datetime(df["DATEA"], format="%Y/%m/%d")
-                > pd.Timestamp(str(os.getenv("LAST_COMPLAINT_WAVE_DATE")))
-            )
+            & (df["ODINO"] > int(str(os.getenv("LAST_ODINO_CAPTURED"))))
         ]
 
     def __extract_links_from_page(self, url) -> List:

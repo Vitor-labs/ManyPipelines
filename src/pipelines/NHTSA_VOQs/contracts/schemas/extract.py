@@ -114,6 +114,7 @@ schema = DataFrameSchema(
             description="Vehicle Identification Number",
         ),
         "DATEA": Column(
+            # Name: DATEA, Length: 234488, dtype: int64" doesn't match format "%Y%m%d", at position 0.
             dtype="datetime64[ns]",
             checks=[
                 Check.between(
