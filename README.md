@@ -3,11 +3,16 @@
 ## Table of Content
 
 - [Table of Content](#table-of-content)
+- [Anotações de Cria:](#anotações-de-cria)
 - [How to run this project](#how-to-run-this-project)
   - [Explanation of the Project Structure](#explanation-of-the-project-structure)
   - [Pipeline Archtecture](#pipeline-archtecture)
   - [Cloud Archtecture:](#cloud-archtecture)
   - [See the Docs](#see-the-docs)
+
+## Anotações de Cria:
+1. NHTSA_VOQs: juntar f8 com GRID por model e binning, binnar tudo.
+2. Competitive Analysis: filtrar model year 2012 a 2024 e F8, Union all by maker, model year and failure mode (pós processamento) 
 
 ## How to run this project
 
@@ -41,16 +46,9 @@ pre-commit install
 ├─ 📂data
 │   ├─ 📂external       <- Data from third party sources.
 │   ├─ 📂processed      <- The final, canonical data sets for modeling.
-│   ├─ 📂raw            <- The original, immutable data dump and system logs.
-│   └─ 📜references.md  <- Data dictionaries, manuals, and all other explanatory materials.
+│   └─ 📂raw            <- The original, immutable data dump and system logs.
 │
-├─ 📂frontend           <- Form-Check-List to send after collecting and process data.
-│
-├─ 📂notebooks          <- Jupyter notebooks. Naming convention is a number (for ordering), and
-|   |                       a short `-` with a description, ex: `1.0-nhtsa_data_colector.ipynb`.
-│   │
-│   └─ 📂scripts        <- Notebooks notebooks turned into scripts, some individual scripts and more
-│
+├─ 📂reports            <- Logs, Docs assets and data references
 ├─ 📜environment.yml    <- The requirements file for reproducing the analysis environment, e.g.
 │                           generated with `conda list -e > environment.yml`
 │
@@ -63,13 +61,6 @@ pre-commit install
 📦src
 ├─📜README.md           <- The top-level README for developers using this project.
 ├─⚙️.gitignore          <- git configuration.
-├─📂drivers
-│  ├─📂interfaces       <- Dependency Inversion.
-│  │  ├─🐍structure_df  <- datasets types definitions & save CSV dataset
-│  │  └─🐍http_request  <- Request Interface.
-│  │
-│  ├─🐍structure_df     <- structure of dataset definiton for further add of columns
-│  └─🐍http_request     <- Request Inplementation.
 │
 ├─📂errors              <- Errors and Exeptions Definitions.
 │  ├─🐍extract_error    <- Errors definitions for extraction step
@@ -77,19 +68,26 @@ pre-commit install
 │  └─🐍load_error       <- Errors definitions for Loading step
 │  
 ├─📂infra               <- Code Infrastructure (Database management, 3º parties
-│  │                       connections, dataflow visualization, etc).
-│  └─📂interfaces       <- Dependency Inversion.
+│                          connections, dataflow visualization, etc).
 │
-├─📂main                <- Pipeline Control flow.
-│  └─🐍pipeline         <- defines the flow of the ETL process 'run.py'.
-│  └─🐍main             <- file alike the common 'run.py'.
-│  
-└─📂stages              <- Definition for each stage and contracts for data transmition.
-   ├─📂contracts        <- Defines contracts for data transmition.
-   ├─📂utils            <- Some helper functions with decorators and loggers.
-   ├─📂extract          <- Defines Extract Data Step.
-   ├─📂transform        <- Defines Transform Data Step.
-   └─📂load             <- Defines Load Data Step.
+├─📂pipelines           <- Pipeline Control flow.
+│  ├─📂contracts        <- Defines contracts for data transmition.
+│  │  └─📂schemas       <- Defines schemas for data validation.
+│  │
+│  ├─ 📂main            <- Pipeline class definition and runner script.
+│  │  ├─🐍pipeline      <- Pipeline module
+│  │  └─🐍run           <- runs with pytest
+│  │
+│  ├─ 📂notebooks       <- Jupyter notebooks. Naming convention is a number (for ordering), and
+│  │                          a short `-` with a description, ex: `1.0-nhtsa_data_colector.ipynb`.
+│  │
+│  └─📂stages           <- Definition for each stage and contracts for data transmition.
+│     ├─🐍extract       <- Defines Extract Data Step.
+│     ├─🐍transform     <- Defines Transform Data Step.
+│     └─🐍load          <- Defines Load Data Step.
+│   
+│    
+└─📂utils            <- Some helper functions with decorators and loggers.
 </pre>
 
 ### Cloud Archtecture:
