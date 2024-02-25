@@ -12,6 +12,7 @@ pandera = "*"
 pyyaml = "*"
 black = "*"
 frictionless = "*"
+openpyxl = "*"
 
 [dev-packages]
 ipykernel = "*"
