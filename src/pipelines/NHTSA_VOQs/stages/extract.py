@@ -14,10 +14,10 @@ import bs4
 import pandas as pd
 import pandera as pa
 
-from src.utils.decorators import retry
 from src.utils.logger import setup_logger
 from src.utils.funtions import create_client
 from src.errors.extract_error import ExtractError
+from src.utils.decorators import retry, time_logger
 from src.pipelines.NHTSA_VOQs.contracts.schemas.extract import schema
 from src.pipelines.NHTSA_VOQs.contracts.extract_contract import ExtractContract
 
@@ -35,10 +35,11 @@ class DataExtractor:
         self.logger = logging.getLogger(__name__)
         setup_logger()
 
+    @time_logger
     @retry([ConnectionError])
     def extract(self) -> ExtractContract:
         """
-        Main method of extraction
+        Main method of extraction for VOQs
 
         Raises:
             ExtractError: error occurred during extraction
@@ -46,18 +47,14 @@ class DataExtractor:
         Returns:
             ExtractContract: data extracted
         """
-        start_time = time.time()
-        self.logger.debug("\nRunning Extract stage")
         try:
+            self.logger.debug("\nRunning Extract stage")
             datasets = self.__extract_links_from_page(str(os.getenv("NHTSA_BASE_URL")))
             retrived = self.__mount_dataset_from_content(datasets[0])
             return ExtractContract(raw_data=retrived, extract_date=date.today())
 
         except Exception as exc:
             raise ExtractError(str(exc)) from exc
-
-        finally:
-            self.logger.debug("--- %s seconds ---", round(time.time() - start_time, 2))
 
     # @pa.check_output(schema, lazy=True)
     def __mount_dataset_from_content(self, info: Dict) -> pd.DataFrame:
@@ -76,10 +73,7 @@ class DataExtractor:
                 df = pd.read_csv(file, sep="\t", header=None, names=self.columns)
                 df.drop_duplicates(subset=["ODINO"], inplace=True)
 
-        return df[
-            (df["MFR_NAME"] == "Ford Motor Company")
-            & (df["ODINO"] > int(str(os.getenv("LAST_ODINO_CAPTURED"))))
-        ]
+        return df[df["ODINO"] > int(str(os.getenv("LAST_ODINO_CAPTURED")))]
 
     def __extract_links_from_page(self, url) -> List:
         with create_client() as client:

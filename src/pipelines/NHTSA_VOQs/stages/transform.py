@@ -4,7 +4,6 @@ retrived from NHTSA.
 """
 
 import os
-import time
 import logging
 from typing import List
 from functools import lru_cache
@@ -16,7 +15,7 @@ from src.errors.transform_error import TransformError
 from src.pipelines.NHTSA_VOQs.contracts.extract_contract import ExtractContract
 from src.pipelines.NHTSA_VOQs.contracts.transform_contract import TransformContract
 from src.utils.logger import setup_logger
-from src.utils.decorators import rate_limiter, retry
+from src.utils.decorators import rate_limiter, retry, time_logger
 from src.utils.funtions import (
     load_categories,
     convert_code_into_state,
@@ -27,7 +26,6 @@ from src.utils.funtions import (
     load_full_vins,
     load_new_models,
     load_vfgs,
-    create_client,
 )
 
 
@@ -43,6 +41,7 @@ class DataTransformer:
         self.logger = logging.getLogger(__name__)
         setup_logger()
 
+    @time_logger
     def transform(self, contract: ExtractContract) -> TransformContract:
         """
         Main flow to tranform data colleted from previews steps
@@ -56,16 +55,11 @@ class DataTransformer:
         Returns:
             TransformContract: contract with transformed data to the next step
         """
-        start_time = time.time()
-        self.logger.info("Running Transform stage")
-
         try:
+            self.logger.info("Running Transform stage")
             return TransformContract(content=self.__transform_complaints(contract))
         except TransformError as exc:
-            self.logger.exception(exc)
             raise exc
-        finally:
-            self.logger.info("--- %s minutes ---", round(time.time() - start_time, 2))
 
     def __transform_complaints(self, contract: ExtractContract) -> pd.DataFrame:
         """
@@ -84,19 +78,19 @@ class DataTransformer:
         gsar_token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6ImFSZ2hZU01kbXI2RFZpMTdWVVJtLUJlUENuayJ9.eyJhdWQiOiJ1cm46Z3NhcjpyZXNvdXJjZTp3ZWI6cHJvZCIsImlzcyI6Imh0dHBzOi8vY29ycC5zdHMuZm9yZC5jb20vYWRmcy9zZXJ2aWNlcy90cnVzdCIsImlhdCI6MTcwODY5OTA2NCwiZXhwIjoxNzA4NzI3ODY0LCJDb21tb25OYW1lIjoiVkRVQVJUMTAiLCJzdWIiOiJWRFVBUlQxMCIsInVpZCI6InZkdWFydDEwIiwiZm9yZEJ1c2luZXNzVW5pdENvZGUiOiJGU0FNUiIsImdpdmVuTmFtZSI6IlZpY3RvciIsInNuIjoiRHVhcnRlIiwiaW5pdGlhbHMiOiJWLiIsIm1haWwiOiJ2ZHVhcnQxMEBmb3JkLmNvbSIsImVtcGxveWVlVHlwZSI6Ik0iLCJzdCI6IkJBIiwiYyI6IkJSQSIsImZvcmRDb21wYW55TmFtZSI6IklOU1QgRVVWQUxETyBMT0RJIE4gUkVHSU9OQUwgQkFISUEiLCJmb3JkRGVwdENvZGUiOiIwNjY0Nzg0MDAwIiwiZm9yZERpc3BsYXlOYW1lIjoiRHVhcnRlLCBWaWN0b3IgKFYuKSIsImZvcmREaXZBYmJyIjoiUFJEIiwiZm9yZERpdmlzaW9uIjoiUEQgT3BlcmF0aW9ucyBhbmQgUXVhbGl0eSIsImZvcmRDb21wYW55Q29kZSI6IjAwMDE1ODM4IiwiZm9yZE1hbmFnZXJDZHNpZCI6Im1tYWdyaTEiLCJmb3JkTVJSb2xlIjoiTiIsImZvcmRTaXRlQ29kZSI6IjY1MzYiLCJmb3JkVXNlclR5cGUiOiJFbXBsb3llZSIsImFwcHR5cGUiOiJQdWJsaWMiLCJhcHBpZCI6InVybjpnc2FyOmNsaWVudGlkOndlYjpwcm9kIiwiYXV0aG1ldGhvZCI6Imh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9hdXRoZW50aWNhdGlvbm1ldGhvZC93aW5kb3dzIiwiYXV0aF90aW1lIjoiMjAyNC0wMi0yM1QxNDo0Mjo0NC44MTFaIiwidmVyIjoiMS4wIn0.dm1oBbsiudh4cT22D4bo719BPpgZXsWyIT5mF_jch47yHJOP5GkSoUgjQtAHOx_5iwU39ugBVxrHCBBS4w6_NDQWrR2nmmmepAYe-6NG6eZWFaJjDTreZ04iKzc46WOiH_uINYozAHyKgYecgtCo2ENc7cDvh-bXtF6GDQlZxCuSnpRxNnEwWwTMCg3YLZZnM5Mqht3eW29ZyY_WYk6fPaz1oOcX089s_3uI3GbDd4HCOUrJ99LdrqgSR4kTr0l4zE2pkT_IWUxp7zJ-quT_r9DJMRsX2qp0QQxb2MWJBU5o-oUm2Sb9xDC31gv7-_3ZC30HMfKnItCTrFm4p7pKRQ"
 
         data["MODELTXT"].replace(new_models)
-        # data[["FUNCTION_", "COMPONET", "FAILURE"]] = (
-        #     data["CDESCR"]
-        #     .apply(
-        #         lambda row: self.__classify_case(
-        #             row, credentials["url"], credentials["token"]
-        #         )
-        #     )
-        #     .to_list()
-        # )
-        # data["BINNING"] = data["COMPONET"] + " | " + data["FAILURE"]
+        data[["FUNCTION_", "COMPONET", "FAILURE"]] = (
+            data["CDESCR"]
+            .apply(
+                lambda row: self.__classify_case(
+                    row, credentials["url"], credentials["token"]
+                )
+            )
+            .to_list()
+        )
+        data["BINNING"] = data["COMPONET"] + " | " + data["FAILURE"]
         data["FULL_STATE"] = data["STATE"].apply(convert_code_into_state)
         data["FAIL_QUARTER"] = data["FAILDATE"].apply(get_quarter)
-        # data["VFG"] = data["BINNING"].apply(lambda x: vfgs.get(x, " ~ "))
+        data["VFG"] = data["BINNING"].apply(lambda x: vfgs.get(x, " ~ "))
         data["FULL_VIN"] = data["ODINO"].apply(lambda x: vins.get(x, " ~ "))
         data[
             [
@@ -114,7 +108,7 @@ class DataTransformer:
         )
         data["REPAIR_DATE_1"] = ""
         data["REPAIR_DATE_2"] = ""
-        # data["FAILURE_MODE"] = data["BINNING"].apply(classify_binning)
+        data["FAILURE_MODE"] = data["BINNING"].apply(classify_binning)
         data["MILEAGE_CLASS"] = data["MILES"].apply(get_mileage_class)
         data["EXTRACTED_DATE"] = contract.extract_date
 

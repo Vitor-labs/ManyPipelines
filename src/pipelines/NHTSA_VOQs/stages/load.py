@@ -2,8 +2,6 @@
 This module defines the basic flow of data Loading from NHTSA portal
 """
 
-import csv
-import time
 import logging
 from typing import cast
 from datetime import date
@@ -12,6 +10,7 @@ import dotenv
 import pandas as pd
 from openpyxl import Workbook, load_workbook
 from openpyxl.worksheet.worksheet import Worksheet
+from src.utils.decorators import time_logger
 
 from src.utils.logger import setup_logger
 from src.errors.load_error import LoadError
@@ -31,6 +30,7 @@ class DataLoader:
         self.logger = logging.getLogger(__name__)
         setup_logger()
 
+    @time_logger
     def load_data(self, contract: TransformContract) -> None:
         """
         Saves data localy in data/processed directory
@@ -40,9 +40,8 @@ class DataLoader:
         Raises:
             LoadError: Error during serialization.
         """
-        start_time = time.time()
-        self.logger.info("Running Load stage")
         try:
+            self.logger.info("Running Load stage")
             self.__save_processed_data_csv(contract.content)
             dotenv.set_key(
                 dotenv.find_dotenv(),
@@ -50,11 +49,7 @@ class DataLoader:
                 date.today().strftime("%Y%m%d"),
             )
         except Exception as exc:
-            self.logger.exception(exc)
             raise LoadError(str(exc)) from exc
-
-        finally:
-            self.logger.info("---% seconds ---\n", round(time.time() - start_time, 2))
 
     def __save_processed_data_csv(self, content: pd.DataFrame) -> None:
         try:

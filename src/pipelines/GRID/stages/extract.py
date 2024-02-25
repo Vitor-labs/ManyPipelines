@@ -8,6 +8,7 @@ from typing import Dict, List
 from datetime import date
 
 import pandas as pd
+from src.utils.decorators import time_logger
 
 from src.utils.logger import setup_logger
 from src.errors.extract_error import ExtractError
@@ -27,6 +28,7 @@ class DataExtractor:
         self.logger = logging.getLogger(__name__)
         setup_logger()
 
+    @time_logger
     def extract(self) -> ExtractContract:
         """
         Loads "GRID_Last_Update" as a dataset and returns only
@@ -36,6 +38,7 @@ class DataExtractor:
             pd.DataFrame: filtered dataframe
         """
         try:
+            self.logger.debug("\nRunning Extract stage")
             df = pd.read_excel(self.PATH, sheet_name="Data", dtype=str)
 
             filtered = df[

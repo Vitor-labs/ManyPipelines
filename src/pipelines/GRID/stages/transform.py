@@ -10,8 +10,8 @@ from typing import Dict
 import httpx
 import pandas as pd
 
-from src.utils.decorators import retry
 from src.utils.logger import setup_logger
+from src.utils.decorators import retry, time_logger
 from src.utils.funtions import load_categories, load_classifier_credentials
 
 from src.errors.transform_error import TransformError
@@ -31,6 +31,7 @@ class DataTransformer:
         self.logger = logging.getLogger(__name__)
         setup_logger()
 
+    @time_logger
     def transform(self, contract: ExtractContract) -> TransformContract:
         """
         Main flow to tranform data colleted from previews steps
@@ -44,16 +45,11 @@ class DataTransformer:
         Returns:
             TransformContract: contract with transformed data to the next step
         """
-        start_time = time.time()
-        self.logger.info("Running Transform stage")
-
         try:
+            self.logger.info("Running Transform stage")
             return TransformContract(content=self.__process_new_issue(contract))
         except TransformError as exc:
-            self.logger.exception(exc)
             raise exc
-        finally:
-            self.logger.info("--- %s minutes ---", round(time.time() - start_time, 2))
 
     def __process_new_issue(self, contract: ExtractContract) -> pd.DataFrame:
         """

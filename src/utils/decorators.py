@@ -4,10 +4,42 @@ This modules defines some util decorators to handle exeptions and logging option
 Contains:
     retry: Retry Function Decorator
 """
+
 import time
 from functools import wraps
 from logging import Logger
 from typing import Any, Callable, List, Optional, Type
+
+
+def time_logger(
+    func: Callable,
+    logger: Optional[Logger] = None,
+) -> Callable:
+    """
+    A decorator to log the execution time of a method.
+
+    Args:
+        logger (Optional[logging.Logger], optional): Logger
+        instance for logging time. Defaults to None.
+
+    Returns:
+        Callable: The decorated function with time logging
+        functionality added to its capability.
+    """
+
+    @wraps(func)
+    def wrapper(self, *args, **kwargs) -> Any:
+        try:
+            t1 = time.time()
+            if logger:
+                logger.info("--- %s minutes ---", round(time.time() - t1 / 60, 2))
+            return func(self, *args, **kwargs)
+        except Exception as exc:
+            if logger:
+                logger.exception(exc)
+            raise exc
+
+    return wrapper
 
 
 def retry(
