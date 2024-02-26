@@ -24,7 +24,7 @@ def setup():
     """
     load_dotenv(find_dotenv())
 
-    mock = pd.read_csv("./data/raw/mock_dataset.csv")
+    mock = pd.read_csv("./data/processed/NHTSA_COMPLAINTS_PROCESSED_2024-02-20.csv")
 
     return TransformContract(content=mock)
 
