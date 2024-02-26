@@ -7,6 +7,7 @@ from datetime import date
 
 import dotenv
 import pandas as pd
+from openpyxl import load_workbook
 
 from src.utils.logger import setup_logger
 from src.errors.load_error import LoadError
@@ -39,17 +40,18 @@ class DataLoader:
         """
         try:
             self.logger.info("Running Load stage")
-            self.__save_processed_data_csv(contract.content)
             self.__append_processed_data_excel(contract.content)
-            dotenv.set_key(
-                dotenv.find_dotenv(),
-                "LAST_COMPLAINT_WAVE_DATE",
-                date.today().strftime("%Y%m%d"),
-            )
+            self.__save_other_processed_data_csv(contract.content)
+            # dotenv.set_key(
+            #     dotenv.find_dotenv(),
+            #     "LAST_COMPLAINT_WAVE_DATE",
+            #     date.today().strftime("%Y%m%d"),
+            # )
         except Exception as exc:
+            self.logger.exception(exc)
             raise LoadError(str(exc)) from exc
 
-    def __save_processed_data_csv(self, content: pd.DataFrame) -> None:
+    def __save_other_processed_data_csv(self, content: pd.DataFrame) -> None:
         today = date.today().strftime("%Y-%m-%d")
         path = f"./data/processed/NHTSA_COMPLAINTS_PROCESSED_{today}.csv"
 
@@ -74,8 +76,59 @@ class DataLoader:
             raise LoadError("There is no new data")
         try:
             data = dataset[dataset["FUNCTION_"] == "F8"]
-            with pd.ExcelWriter(path, engine="openpyxl", mode="a") as writer:
-                data.to_excel(writer, sheet_name=sheet_name, index=False, header=False)
-
+            with pd.ExcelWriter(
+                path, engine="openpyxl", mode="a", if_sheet_exists="overlay"
+            ) as writer:
+                data[
+                    [
+                        "CMPLID",
+                        "ODINO",
+                        "MAKETXT",
+                        "MODELTXT",
+                        "YEARTXT",
+                        "FAILDATE",
+                        "FAIL_QUARTER",
+                        "DATEA",
+                        "PROD_DATE",
+                        "EXTRACTED_DATE",
+                        "FULL_VIN",
+                        "VIN",
+                        "FUNCTION_",
+                        "CDESCR",
+                        "BINNING",
+                        "VFG",
+                        "COMPONET",
+                        "FAILURE",
+                        "CRASH",
+                        "FIRE",
+                        "INJURED",
+                        "DEATHS",
+                        "MILES",
+                        "STATE",
+                        "VEH_SPEED",
+                        "DEALER_NAME",
+                        "DEALER_STATE",
+                        "To_be_Binned",
+                        "VEHICLE_LINE_WERS",
+                        "VEHICLE_LINE_GSAR",
+                        "VEHICLE_LINE_GLOBAL",
+                        "ASSEMBLY_PLANT",
+                        "WARRANTY_START_DATE",
+                        "REPAIR_DATE_1",
+                        "REPAIR_DATE_2",
+                        "FAILURE_MODE",
+                        "NewOld",
+                        "New_Failure_Mode",
+                        "MILEAGE_CLASS",
+                    ]
+                ].to_excel(
+                    writer,
+                    sheet_name=sheet_name,
+                    startrow=writer.sheets[sheet_name].max_row,
+                    index=False,
+                    header=False,
+                )
         except FileNotFoundError as exc:
             raise LoadError(str(exc)) from exc
+        except Exception as exc:
+            raise exc

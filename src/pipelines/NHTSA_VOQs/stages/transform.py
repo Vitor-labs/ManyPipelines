@@ -59,6 +59,7 @@ class DataTransformer:
             self.logger.info("Running Transform stage")
             return TransformContract(content=self.__transform_complaints(contract))
         except TransformError as exc:
+            self.logger.exception(exc)
             raise exc
 
     def __transform_complaints(self, contract: ExtractContract) -> pd.DataFrame:
@@ -108,6 +109,11 @@ class DataTransformer:
         )
         data["REPAIR_DATE_1"] = ""
         data["REPAIR_DATE_2"] = ""
+        data["To_be_Binned"] = (
+            data["MODELTXT"] + data["YEARTXT"].astype(str) + data["CDESCR"]
+        )
+        data["NewOld"] = ""
+        data["New_Failure_Mode"] = ""
         data["FAILURE_MODE"] = data["BINNING"].apply(classify_binning)
         data["MILEAGE_CLASS"] = data["MILES"].apply(get_mileage_class)
         data["EXTRACTED_DATE"] = contract.extract_date
@@ -200,7 +206,6 @@ class DataTransformer:
             )
         except Exception as exc:
             self.logger.exception(exc)
-            self.logger.error(exc)
             raise TransformError(str(exc)) from Exception
 
         if response.status_code == 200:

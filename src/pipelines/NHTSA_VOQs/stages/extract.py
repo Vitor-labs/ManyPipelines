@@ -54,6 +54,7 @@ class DataExtractor:
             return ExtractContract(raw_data=retrived, extract_date=date.today())
 
         except Exception as exc:
+            self.logger.exception(exc)
             raise ExtractError(str(exc)) from exc
 
     # @pa.check_output(schema, lazy=True)
