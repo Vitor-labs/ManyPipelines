@@ -30,7 +30,7 @@ def setup():
     return ExtractContract(raw_data=mock, extract_date=date(2024, 2, 22))
 
 
-def test_extract_sucess(setup):
+def test_transform_sucess(setup):
     """
     Test case for transforming sucess
     """
