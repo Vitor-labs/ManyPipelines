@@ -3,6 +3,7 @@ This module defines the basic flow of data Tranformation from data
 retrived from NHTSA.
 """
 
+import asyncio
 import os
 import logging
 from typing import List
@@ -17,6 +18,7 @@ from src.pipelines.NHTSA_VOQs.contracts.transform_contract import TransformContr
 from src.utils.logger import setup_logger
 from src.utils.decorators import rate_limiter, retry, time_logger
 from src.utils.funtions import (
+    create_async_client,
     load_categories,
     convert_code_into_state,
     get_quarter,
@@ -42,7 +44,7 @@ class DataTransformer:
         setup_logger()
 
     @time_logger
-    def transform(self, contract: ExtractContract) -> TransformContract:
+    async def transform(self, contract: ExtractContract) -> TransformContract:
         """
         Main flow to tranform data colleted from previews steps
 
@@ -57,12 +59,14 @@ class DataTransformer:
         """
         try:
             self.logger.info("Running Transform stage")
-            return TransformContract(content=self.__transform_complaints(contract))
+            return TransformContract(
+                content=await self.__transform_complaints(contract)
+            )
         except TransformError as exc:
             self.logger.exception(exc)
             raise exc
 
-    def __transform_complaints(self, contract: ExtractContract) -> pd.DataFrame:
+    async def __transform_complaints(self, contract: ExtractContract) -> pd.DataFrame:
         """
         increments the dataset with addtional columns
         Args:
@@ -75,38 +79,43 @@ class DataTransformer:
         vfgs = load_vfgs()
         vins = load_full_vins()
         new_models = load_new_models()
+        semaphore = asyncio.Semaphore(50)
         credentials = load_classifier_credentials()
-        gsar_token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6ImFSZ2hZU01kbXI2RFZpMTdWVVJtLUJlUENuayJ9.eyJhdWQiOiJ1cm46Z3NhcjpyZXNvdXJjZTp3ZWI6cHJvZCIsImlzcyI6Imh0dHBzOi8vY29ycC5zdHMuZm9yZC5jb20vYWRmcy9zZXJ2aWNlcy90cnVzdCIsImlhdCI6MTcwODY5OTA2NCwiZXhwIjoxNzA4NzI3ODY0LCJDb21tb25OYW1lIjoiVkRVQVJUMTAiLCJzdWIiOiJWRFVBUlQxMCIsInVpZCI6InZkdWFydDEwIiwiZm9yZEJ1c2luZXNzVW5pdENvZGUiOiJGU0FNUiIsImdpdmVuTmFtZSI6IlZpY3RvciIsInNuIjoiRHVhcnRlIiwiaW5pdGlhbHMiOiJWLiIsIm1haWwiOiJ2ZHVhcnQxMEBmb3JkLmNvbSIsImVtcGxveWVlVHlwZSI6Ik0iLCJzdCI6IkJBIiwiYyI6IkJSQSIsImZvcmRDb21wYW55TmFtZSI6IklOU1QgRVVWQUxETyBMT0RJIE4gUkVHSU9OQUwgQkFISUEiLCJmb3JkRGVwdENvZGUiOiIwNjY0Nzg0MDAwIiwiZm9yZERpc3BsYXlOYW1lIjoiRHVhcnRlLCBWaWN0b3IgKFYuKSIsImZvcmREaXZBYmJyIjoiUFJEIiwiZm9yZERpdmlzaW9uIjoiUEQgT3BlcmF0aW9ucyBhbmQgUXVhbGl0eSIsImZvcmRDb21wYW55Q29kZSI6IjAwMDE1ODM4IiwiZm9yZE1hbmFnZXJDZHNpZCI6Im1tYWdyaTEiLCJmb3JkTVJSb2xlIjoiTiIsImZvcmRTaXRlQ29kZSI6IjY1MzYiLCJmb3JkVXNlclR5cGUiOiJFbXBsb3llZSIsImFwcHR5cGUiOiJQdWJsaWMiLCJhcHBpZCI6InVybjpnc2FyOmNsaWVudGlkOndlYjpwcm9kIiwiYXV0aG1ldGhvZCI6Imh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9hdXRoZW50aWNhdGlvbm1ldGhvZC93aW5kb3dzIiwiYXV0aF90aW1lIjoiMjAyNC0wMi0yM1QxNDo0Mjo0NC44MTFaIiwidmVyIjoiMS4wIn0.dm1oBbsiudh4cT22D4bo719BPpgZXsWyIT5mF_jch47yHJOP5GkSoUgjQtAHOx_5iwU39ugBVxrHCBBS4w6_NDQWrR2nmmmepAYe-6NG6eZWFaJjDTreZ04iKzc46WOiH_uINYozAHyKgYecgtCo2ENc7cDvh-bXtF6GDQlZxCuSnpRxNnEwWwTMCg3YLZZnM5Mqht3eW29ZyY_WYk6fPaz1oOcX089s_3uI3GbDd4HCOUrJ99LdrqgSR4kTr0l4zE2pkT_IWUxp7zJ-quT_r9DJMRsX2qp0QQxb2MWJBU5o-oUm2Sb9xDC31gv7-_3ZC30HMfKnItCTrFm4p7pKRQ"
+        gsar_token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6ImFSZ2hZU01kbXI2RFZpMTdWVVJtLUJlUENuayJ9.eyJhdWQiOiJ1cm46Z3NhcjpyZXNvdXJjZTp3ZWI6cHJvZCIsImlzcyI6Imh0dHBzOi8vY29ycC5zdHMuZm9yZC5jb20vYWRmcy9zZXJ2aWNlcy90cnVzdCIsImlhdCI6MTcwODk1NTg5NywiZXhwIjoxNzA4OTg0Njk3LCJDb21tb25OYW1lIjoiVkRVQVJUMTAiLCJzdWIiOiJWRFVBUlQxMCIsInVpZCI6InZkdWFydDEwIiwiZm9yZEJ1c2luZXNzVW5pdENvZGUiOiJGU0FNUiIsImdpdmVuTmFtZSI6IlZpY3RvciIsInNuIjoiRHVhcnRlIiwiaW5pdGlhbHMiOiJWLiIsIm1haWwiOiJ2ZHVhcnQxMEBmb3JkLmNvbSIsImVtcGxveWVlVHlwZSI6Ik0iLCJzdCI6IkJBIiwiYyI6IkJSQSIsImZvcmRDb21wYW55TmFtZSI6IklOU1QgRVVWQUxETyBMT0RJIE4gUkVHSU9OQUwgQkFISUEiLCJmb3JkRGVwdENvZGUiOiIwNjY0Nzg0MDAwIiwiZm9yZERpc3BsYXlOYW1lIjoiRHVhcnRlLCBWaWN0b3IgKFYuKSIsImZvcmREaXZBYmJyIjoiUFJEIiwiZm9yZERpdmlzaW9uIjoiUEQgT3BlcmF0aW9ucyBhbmQgUXVhbGl0eSIsImZvcmRDb21wYW55Q29kZSI6IjAwMDE1ODM4IiwiZm9yZE1hbmFnZXJDZHNpZCI6Im1tYWdyaTEiLCJmb3JkTVJSb2xlIjoiTiIsImZvcmRTaXRlQ29kZSI6IjY1MzYiLCJmb3JkVXNlclR5cGUiOiJFbXBsb3llZSIsImFwcHR5cGUiOiJQdWJsaWMiLCJhcHBpZCI6InVybjpnc2FyOmNsaWVudGlkOndlYjpwcm9kIiwiYXV0aG1ldGhvZCI6Imh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9hdXRoZW50aWNhdGlvbm1ldGhvZC93aW5kb3dzIiwiYXV0aF90aW1lIjoiMjAyNC0wMi0yNlQxMzowNzozNS4yOTVaIiwidmVyIjoiMS4wIn0.r9Zsg9-TBBhgeiNq6Q083QXTQJyB61jprNN8S8pZ5LUrUxDvzBLlH--s9EFM7rCHT7uFcC2Yokn-F-PakY_YHsrLVXCCPsHQvyCYqaPeGHITJjSAVLLOaRavxNSriGrLqrUBEApqm7PvMzt5z1UP8s1YH6qCi7HThoIvWMc6RDClMc7l9X9i7HFmHQZHigYo-KFg8cf-4kH5_abfPaFBpb74U6NUPsZLnQ6KZW0LPfXRT4d97F6EdyDB8Ay5C3umWMZDyrE7qkeK5IneHGPawwHAP-xJr5_pHkmncWumpIr90-ss3L-c3f83gx3W6dhoPfHza9jPnIajr4jpRxyigQ"
 
         data["MODELTXT"].replace(new_models)
-        data[["FUNCTION_", "COMPONET", "FAILURE"]] = (
-            data["CDESCR"]
-            .apply(
-                lambda row: self.__classify_case(
-                    row, credentials["url"], credentials["token"]
-                )
-            )
-            .to_list()
-        )
-        data["BINNING"] = data["COMPONET"] + " | " + data["FAILURE"]
         data["FULL_STATE"] = data["STATE"].apply(convert_code_into_state)
         data["FAIL_QUARTER"] = data["FAILDATE"].apply(get_quarter)
-        data["VFG"] = data["BINNING"].apply(lambda x: vfgs.get(x, " ~ "))
         data["FULL_VIN"] = data["ODINO"].apply(lambda x: vins.get(x, " ~ "))
-        data[
-            [
-                "PROD_DATE",
-                "VEHICLE_LINE_WERS",
-                "VEHICLE_LINE_GSAR",
-                "VEHICLE_LINE_GLOBAL",
-                "ASSEMBLY_PLANT",
-                "WARRANTY_START_DATE",
-            ]
-        ] = (
-            data["FULL_VIN"]
-            .apply(lambda vin: self.__get_info_by_vin(vin, gsar_token))
-            .to_list()
-        )
+        # data[["FUNCTION_", "COMPONET", "FAILURE"]] = (
+        #     data["CDESCR"]
+        #     .apply(
+        #         lambda row: self.__classify_case(
+        #             row, credentials["url"], credentials["token"]
+        #         )
+        #     )
+        #     .to_list()
+        # )
+        # data["BINNING"] = data["COMPONET"] + " | " + data["FAILURE"]
+        # data["VFG"] = data["BINNING"].apply(lambda x: vfgs.get(x, " ~ "))
+        # data["FAILURE_MODE"] = data["BINNING"].apply(classify_binning)
+
+        async with create_async_client() as client:
+            data[
+                [
+                    "PROD_DATE",
+                    "VEHICLE_LINE_WERS",
+                    "VEHICLE_LINE_GSAR",
+                    "VEHICLE_LINE_GLOBAL",
+                    "ASSEMBLY_PLANT",
+                    "WARRANTY_START_DATE",
+                ]
+            ] = await asyncio.gather(
+                *(
+                    self.__get_info_by_vin(vin, client, gsar_token, semaphore)
+                    for vin in data["FULL_VIN"]
+                )
+            )
         data["REPAIR_DATE_1"] = ""
         data["REPAIR_DATE_2"] = ""
         data["To_be_Binned"] = (
@@ -114,30 +123,35 @@ class DataTransformer:
         )
         data["NewOld"] = ""
         data["New_Failure_Mode"] = ""
-        data["FAILURE_MODE"] = data["BINNING"].apply(classify_binning)
         data["MILEAGE_CLASS"] = data["MILES"].apply(get_mileage_class)
         data["EXTRACTED_DATE"] = contract.extract_date
 
         return data
 
-    def __get_info_by_vin(self, vin: str, token: str) -> list[str]:
+    async def __get_info_by_vin(
+        self,
+        vin: str,
+        client: httpx.AsyncClient,
+        token: str,
+        semaphore: asyncio.Semaphore,
+    ):
         keys = ["wersVl", "origWarantDate", "prodDate", "plant", "globVl", "awsVl"]
         retrived = dict.fromkeys(keys, "")
-
-        if vin and vin[-1] != "*":
-            response = httpx.get(
+        async with semaphore:
+            response = await client.get(
                 str(os.getenv("GSAR_WERS_URL")),
                 params={"vin": vin},
-                headers={"Authorization": f"Bearer {token}"},
-                proxies={
-                    "http://": "http://internet.ford.com:83",
-                    "https://": "http://internet.ford.com:83",
+                headers={
+                    "Authorization": f"Bearer {token}",
                 },
             )
-            data = dict(response.json())
-            for key in keys:
-                if key in data:
-                    retrived[key] = str(data.get(key))
+
+        print(response)
+        data = dict(response.json())
+        for key in keys:
+            if key in data:
+                retrived[key] = str(data.get(key))
+        await asyncio.sleep(0.5)
 
         return list(retrived.values())
 
@@ -233,7 +247,7 @@ class DataTransformer:
                 return [function, "~", "~"]
 
             if function == "F8":
-                if "|" not in result:  # case where recalls is being processed
+                if "|" not in result:
                     return [function, "~", result]
 
                 component, failure = result.split(" | ")

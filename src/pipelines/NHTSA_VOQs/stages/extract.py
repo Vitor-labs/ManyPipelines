@@ -59,14 +59,13 @@ class DataExtractor:
 
     # @pa.check_output(schema, lazy=True)
     def __mount_dataset_from_content(self, info: Dict) -> pd.DataFrame:
-        self.logger.debug("\nMounting extracted Dataset")
-
-        if (updated_on := date.strftime(info["updated_date"], "%Y-%m-%d")) >= str(
+        if (updated_on := date.strftime(info["updated_date"], "%Y-%m-%d")) <= str(
             os.getenv("LAST_COMPLAINT_WAVE_DATE")
         ):
-            raise ExtractError(f"Dataset last update on {updated_on}")
+            raise ExtractError(f"No New Data. Dataset last update on {updated_on}")
 
         with create_client() as client:
+            self.logger.debug("\nMounting extracted Dataset")
             resp = client.get(info["url"], timeout=160).content
 
         with ZipFile(BytesIO(resp)) as myzip:
@@ -74,7 +73,10 @@ class DataExtractor:
                 df = pd.read_csv(file, sep="\t", header=None, names=self.columns)
                 df.drop_duplicates(subset=["ODINO"], inplace=True)
 
-        return df[df["ODINO"] > int(str(os.getenv("LAST_ODINO_CAPTURED")))]
+        return df[
+            (df["MFR_NAME"] == "Ford Motor Company")
+            & (df["ODINO"] > int(str(os.getenv("LAST_ODINO_CAPTURED"))))
+        ]
 
     def __extract_links_from_page(self, url) -> List:
         with create_client() as client:

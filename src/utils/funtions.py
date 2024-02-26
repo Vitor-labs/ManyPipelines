@@ -82,7 +82,7 @@ def load_full_vins() -> Dict[str, str]:
     Returns:
         Dict[str, str]: dict with odino as key and full vin as value
     """
-    df = pd.read_excel("./data/external/NSCCV-000502-20240219.xlsx", sheet_name="VOQS")
+    df = pd.read_excel("./data/external/NSCCV-000502-20240226.xlsx", sheet_name="VOQS")
     voq_dict = df.set_index("ODI_ID")["VIN"].to_dict()
     return voq_dict
 
@@ -326,6 +326,29 @@ def create_client() -> httpx.Client:
         verify=False,
     )
 
+def create_async_client() -> httpx.AsyncClient:
+    """
+    Creates a common client for future http requests
+
+    Returns:
+        httpx.Client: client with ford proxies
+    """
+    limits = httpx.Limits(max_connections=8) # testing with 8, default 4
+    ford_proxy = str(os.getenv("FORD_PROXY"))
+    timeout_config = httpx.Timeout(10.0, connect=5.0, pool=4.0)
+    proxy_mounts = {
+        "http://": httpx.AsyncHTTPTransport(
+            proxy=httpx.Proxy(ford_proxy), limits=limits, retries=3
+        ),
+        "https://": httpx.AsyncHTTPTransport(
+            proxy=httpx.Proxy(ford_proxy), limits=limits, retries=3
+        ),
+    }
+    return httpx.AsyncClient(
+        timeout=timeout_config,
+        mounts=proxy_mounts,
+        verify=False,
+    )
 
 def load_classifier_credentials() -> Dict[str, str]:
     """

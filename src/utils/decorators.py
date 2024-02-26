@@ -32,11 +32,14 @@ def time_logger(
         try:
             t1 = time.time()
             if logger:
-                logger.info("--- %s minutes ---", round(time.time() - t1 / 60, 2))
+                logger.debug("--- %s minutes ---", round(time.time() - t1 / 60, 2))
             return func(self, *args, **kwargs)
         except Exception as exc:
             if logger:
                 logger.exception(exc)
+                logger.debug(
+                    "--- Failed in %s minutes ---", round(time.time() - t1 / 60, 2)
+                )
             raise exc
 
     return wrapper
