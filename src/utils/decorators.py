@@ -8,13 +8,10 @@ Contains:
 import time
 from functools import wraps
 from logging import Logger
-from typing import Any, Callable, List, Optional, Type
+from typing import Any, Callable, Dict, List, Optional, Type
 
 
-def time_logger(
-    func: Callable,
-    logger: Optional[Logger] = None,
-) -> Callable:
+def time_logger(logger: Logger) -> Callable:
     """
     A decorator to log the execution time of a method.
 
@@ -27,22 +24,25 @@ def time_logger(
         functionality added to its capability.
     """
 
-    @wraps(func)
-    def wrapper(self, *args, **kwargs) -> Any:
-        try:
-            t1 = time.time()
-            if logger:
+    def deco_logger(func: Callable) -> Callable:
+        @wraps(func)
+        def wrapper(*args: List[Any], **kwargs: Dict[str, Any]) -> Any:
+            try:
+                logger.debug("Running %s stage", func.__name__)
+                t1 = time.time()
+                result = func(*args, **kwargs)
                 logger.debug("--- %s minutes ---", round(time.time() - t1 / 60, 2))
-            return func(self, *args, **kwargs)
-        except Exception as exc:
-            if logger:
+                return result
+            except Exception as exc:
                 logger.exception(exc)
                 logger.debug(
                     "--- Failed in %s minutes ---", round(time.time() - t1 / 60, 2)
                 )
-            raise exc
+                raise exc
 
-    return wrapper
+        return wrapper  # true decorator
+
+    return deco_logger
 
 
 def retry(

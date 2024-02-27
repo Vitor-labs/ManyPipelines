@@ -13,13 +13,13 @@
   "handlers": {
     "stderr": {
       "class": "logging.StreamHandler",
-      "level": "WARNING",
+      "level": "INFO",
       "formatter": "simple",
       "stream": "ext://sys.stderr"
     },
     "file": {
       "class": "logging.handlers.RotatingFileHandler",
-      "level": "DEBUG",
+      "level": "INFO",
       "formatter": "detailed",
       "filename": "reports/logs/pipeline.log",
       "maxBytes": 150000,
@@ -28,7 +28,7 @@
   },
   "loggers": {
     "root": {
-      "level": "DEBUG",
+      "level": "INFO",
       "handlers": [
         "stderr",
         "file"
