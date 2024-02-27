@@ -5,11 +5,10 @@ This module defines the main flow of processing data.
 import time
 import logging
 
-from stages.load import DataLoader
-from stages.extract import DataExtractor
-from stages.transform import DataTransformer
-
 from src.utils.logger import setup_logger
+from src.pipelines.GRID.stages.load import DataLoader
+from src.pipelines.GRID.stages.extract import DataExtractor
+from src.pipelines.GRID.stages.transform import DataTransformer
 
 
 class Pipeline:

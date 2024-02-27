@@ -3,7 +3,6 @@ This module defines the basic flow of data Tranformation from data
 retrived from NHTSA.
 """
 
-import time
 import logging
 from typing import Dict
 
@@ -27,11 +26,13 @@ class DataTransformer:
         transform -> TransformContract: increase the dataset, adding columns
     """
 
-    def __init__(self) -> None:
-        self.logger = logging.getLogger(__name__)
-        setup_logger()
+    logger = logging.getLogger(__name__)
+    setup_logger()
 
-    @time_logger
+    def __init__(self) -> None:
+        self.names = []
+
+    @time_logger(logger=logger)
     def transform(self, contract: ExtractContract) -> TransformContract:
         """
         Main flow to tranform data colleted from previews steps

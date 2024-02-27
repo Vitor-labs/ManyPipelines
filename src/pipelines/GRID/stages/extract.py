@@ -23,12 +23,13 @@ class DataExtractor:
     3. Filters what's new and returns.
     """
 
+    logger = logging.getLogger(__name__)
+    setup_logger()
+
     def __init__(self) -> None:
         self.PATH = "C:/Users/VDUART10/azureford/CCM SA Team - GRID Issue Mgmt/GRID_Last_Update.xlsm"
-        self.logger = logging.getLogger(__name__)
-        setup_logger()
 
-    @time_logger
+    @time_logger(logger)
     def extract(self) -> ExtractContract:
         """
         Loads "GRID_Last_Update" as a dataset and returns only
@@ -38,7 +39,6 @@ class DataExtractor:
             pd.DataFrame: filtered dataframe
         """
         try:
-            self.logger.debug("\nRunning Extract stage")
             df = pd.read_excel(self.PATH, sheet_name="Data", dtype=str)
 
             filtered = df[
@@ -67,27 +67,28 @@ class DataExtractor:
         new_issues = []
 
         if data["Issue #"].iloc[0] == str(os.getenv("GRID_LAST_ISSUE")):
-            print("No new issue found")
-            for _, row in data.iterrows():
-                if row["Issue #"] != "24-100":
-                    new_issues.append(
-                        row[
-                            [
-                                "Function",
-                                "Issue #",
-                                "Issue Title",
-                                "Description",
-                                "Affected Vehicles",
-                                "Days Open in CCRG",
-                                "Days Open in CSF",
-                                "Days Open in GOV",
-                                "Days Open in EPRC",
-                                "Field Service Action #",
-                                "Overall Status",
-                                "GRID creation date",
-                            ]
-                        ].to_dict()
-                    )
-                else:
-                    break
+            raise ExtractError("No new issue found")
+
+        for _, row in data.iterrows():
+            if row["Issue #"] != "24-100":
+                new_issues.append(
+                    row[
+                        [
+                            "Function",
+                            "Issue #",
+                            "Issue Title",
+                            "Description",
+                            "Affected Vehicles",
+                            "Days Open in CCRG",
+                            "Days Open in CSF",
+                            "Days Open in GOV",
+                            "Days Open in EPRC",
+                            "Field Service Action #",
+                            "Overall Status",
+                            "GRID creation date",
+                        ]
+                    ].to_dict()
+                )
+            else:
+                break
         return new_issues

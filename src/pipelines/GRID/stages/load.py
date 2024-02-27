@@ -24,17 +24,22 @@ class DataLoader:
         load_data: saves processed data in serialized file and database.
     """
 
-    def __init__(self) -> None:
-        self.logger = logging.getLogger(__name__)
-        setup_logger()
+    logger = logging.getLogger(__name__)
+    setup_logger()
 
-    @time_logger
+    def __init__(self) -> None:
+        self.names = []
+
+    @time_logger(logger)
     def load_data(self, contract: TransformContract) -> None:
         """
         Saves data localy in data/processed directory
+        TODO: save last issue to .env
+        TODO: append file.
 
         Args:
             transform_contract (TransformContract): content processed
+
         Raises:
             LoadError: Error during serialization.
         """
@@ -55,8 +60,7 @@ class DataLoader:
             path = f"./data/processed/GRID_PROCESSED_{today}.csv"
 
             if content.shape[0] == 0:
-                print("There is no new data")
-                return
+                raise LoadError("There is no new data")
 
             content.to_csv(path, index=False)
 
