@@ -3,7 +3,6 @@ This module defines the basic flow of data Extraction from NHTSA portal
 """
 
 import os
-import time
 import logging
 from io import BytesIO
 from zipfile import ZipFile
@@ -30,12 +29,13 @@ class DataExtractor:
     3. Filters what's new and returns.
     """
 
+    logger = logging.getLogger(__name__)
+    setup_logger()
+
     def __init__(self) -> None:
         self.columns: List[str] = list(schema.columns.keys())
-        self.logger = logging.getLogger(__name__)
-        setup_logger()
 
-    @time_logger
+    @time_logger(logger)
     @retry([ConnectionError])
     def extract(self) -> ExtractContract:
         """
@@ -48,7 +48,6 @@ class DataExtractor:
             ExtractContract: data extracted
         """
         try:
-            self.logger.debug("\nRunning Extract stage")
             datasets = self.__extract_links_from_page(str(os.getenv("NHTSA_BASE_URL")))
             retrived = self.__mount_dataset_from_content(datasets[0])
             return ExtractContract(raw_data=retrived, extract_date=date.today())
@@ -65,7 +64,7 @@ class DataExtractor:
             raise ExtractError(f"No New Data. Dataset last update on {updated_on}")
 
         with create_client() as client:
-            self.logger.debug("\nMounting extracted Dataset")
+            self.logger.info("Mounting extracted Dataset")
             resp = client.get(info["url"], timeout=160).content
 
         with ZipFile(BytesIO(resp)) as myzip:
@@ -73,14 +72,11 @@ class DataExtractor:
                 df = pd.read_csv(file, sep="\t", header=None, names=self.columns)
                 df.drop_duplicates(subset=["ODINO"], inplace=True)
 
-        return df[
-            (df["MFR_NAME"] == "Ford Motor Company")
-            & (df["ODINO"] > int(str(os.getenv("LAST_ODINO_CAPTURED"))))
-        ]
+        return df[df["ODINO"] > int(str(os.getenv("LAST_ODINO_CAPTURED")))]
 
     def __extract_links_from_page(self, url) -> List:
         with create_client() as client:
-            self.logger.debug("Acessing NHSTA datasets...")
+            self.logger.info("Acessing NHSTA datasets...")
             soup = bs4.BeautifulSoup(client.get(url).text, "html.parser")
 
         complaints = soup.select("#nhtsa_s3_listing > tbody")[3]

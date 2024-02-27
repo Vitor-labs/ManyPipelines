@@ -3,7 +3,6 @@ This module defines the basic flow of data Tranformation from data
 retrived from NHTSA.
 """
 
-import asyncio
 import os
 import logging
 from typing import List
@@ -18,7 +17,6 @@ from src.pipelines.NHTSA_VOQs.contracts.transform_contract import TransformContr
 from src.utils.logger import setup_logger
 from src.utils.decorators import rate_limiter, retry, time_logger
 from src.utils.funtions import (
-    create_async_client,
     load_categories,
     convert_code_into_state,
     get_quarter,
@@ -39,12 +37,20 @@ class DataTransformer:
         transform -> TransformContract: increase the dataset, adding columns
     """
 
-    def __init__(self) -> None:
-        self.logger = logging.getLogger(__name__)
-        setup_logger()
+    logger = logging.getLogger(__name__)
+    setup_logger()
 
-    @time_logger
-    async def transform(self, contract: ExtractContract) -> TransformContract:
+    def __init__(self) -> None:
+        self.parts = (
+            "door, window, windshield, wiper, glass, hood, trunk, moonroof, "
+            + "bumper, tail light, pillar, undershield, roof rack, latch, he"
+            + "adlight, door handle, door keypad, window, weatherstripping, "
+            + "side mirror, lighting, swing gate, cowl grille, hard top, ski"
+            + "d plate, sheet metal, running boards, water leak, etc"
+        )
+
+    @time_logger(logger=logger)
+    def transform(self, contract: ExtractContract) -> TransformContract:
         """
         Main flow to tranform data colleted from previews steps
 
@@ -58,19 +64,12 @@ class DataTransformer:
             TransformContract: contract with transformed data to the next step
         """
         try:
-            self.logger.info("Running Transform stage")
-            loop = asyncio.get_event_loop()
-            return TransformContract(
-                content=loop.run_until_complete(self.__transform_complaints(contract))
-            )
+            return TransformContract(content=self.__transform_complaints(contract))
         except TransformError as exc:
             self.logger.exception(exc)
             raise exc
-        except asyncio.TimeoutError as exc:
-            self.logger.exception(exc)
-            raise TransformError(str(exc)) from exc
 
-    async def __transform_complaints(self, contract: ExtractContract) -> pd.DataFrame:
+    def __transform_complaints(self, contract: ExtractContract) -> pd.DataFrame:
         """
         increments the dataset with addtional columns
         Args:
@@ -83,43 +82,39 @@ class DataTransformer:
         vfgs = load_vfgs()
         vins = load_full_vins()
         new_models = load_new_models()
-        semaphore = asyncio.Semaphore(50)
         credentials = load_classifier_credentials()
-        gsar_token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6ImFSZ2hZU01kbXI2RFZpMTdWVVJtLUJlUENuayJ9.eyJhdWQiOiJ1cm46Z3NhcjpyZXNvdXJjZTp3ZWI6cHJvZCIsImlzcyI6Imh0dHBzOi8vY29ycC5zdHMuZm9yZC5jb20vYWRmcy9zZXJ2aWNlcy90cnVzdCIsImlhdCI6MTcwODk1NTg5NywiZXhwIjoxNzA4OTg0Njk3LCJDb21tb25OYW1lIjoiVkRVQVJUMTAiLCJzdWIiOiJWRFVBUlQxMCIsInVpZCI6InZkdWFydDEwIiwiZm9yZEJ1c2luZXNzVW5pdENvZGUiOiJGU0FNUiIsImdpdmVuTmFtZSI6IlZpY3RvciIsInNuIjoiRHVhcnRlIiwiaW5pdGlhbHMiOiJWLiIsIm1haWwiOiJ2ZHVhcnQxMEBmb3JkLmNvbSIsImVtcGxveWVlVHlwZSI6Ik0iLCJzdCI6IkJBIiwiYyI6IkJSQSIsImZvcmRDb21wYW55TmFtZSI6IklOU1QgRVVWQUxETyBMT0RJIE4gUkVHSU9OQUwgQkFISUEiLCJmb3JkRGVwdENvZGUiOiIwNjY0Nzg0MDAwIiwiZm9yZERpc3BsYXlOYW1lIjoiRHVhcnRlLCBWaWN0b3IgKFYuKSIsImZvcmREaXZBYmJyIjoiUFJEIiwiZm9yZERpdmlzaW9uIjoiUEQgT3BlcmF0aW9ucyBhbmQgUXVhbGl0eSIsImZvcmRDb21wYW55Q29kZSI6IjAwMDE1ODM4IiwiZm9yZE1hbmFnZXJDZHNpZCI6Im1tYWdyaTEiLCJmb3JkTVJSb2xlIjoiTiIsImZvcmRTaXRlQ29kZSI6IjY1MzYiLCJmb3JkVXNlclR5cGUiOiJFbXBsb3llZSIsImFwcHR5cGUiOiJQdWJsaWMiLCJhcHBpZCI6InVybjpnc2FyOmNsaWVudGlkOndlYjpwcm9kIiwiYXV0aG1ldGhvZCI6Imh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9hdXRoZW50aWNhdGlvbm1ldGhvZC93aW5kb3dzIiwiYXV0aF90aW1lIjoiMjAyNC0wMi0yNlQxMzowNzozNS4yOTVaIiwidmVyIjoiMS4wIn0.r9Zsg9-TBBhgeiNq6Q083QXTQJyB61jprNN8S8pZ5LUrUxDvzBLlH--s9EFM7rCHT7uFcC2Yokn-F-PakY_YHsrLVXCCPsHQvyCYqaPeGHITJjSAVLLOaRavxNSriGrLqrUBEApqm7PvMzt5z1UP8s1YH6qCi7HThoIvWMc6RDClMc7l9X9i7HFmHQZHigYo-KFg8cf-4kH5_abfPaFBpb74U6NUPsZLnQ6KZW0LPfXRT4d97F6EdyDB8Ay5C3umWMZDyrE7qkeK5IneHGPawwHAP-xJr5_pHkmncWumpIr90-ss3L-c3f83gx3W6dhoPfHza9jPnIajr4jpRxyigQ"
+        gsar_token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6ImFSZ2hZU01kbXI2RFZpMTdWVVJtLUJlUENuayJ9.eyJhdWQiOiJ1cm46Z3NhcjpyZXNvdXJjZTp3ZWI6cHJvZCIsImlzcyI6Imh0dHBzOi8vY29ycC5zdHMuZm9yZC5jb20vYWRmcy9zZXJ2aWNlcy90cnVzdCIsImlhdCI6MTcwOTAzNDIwNywiZXhwIjoxNzA5MDYzMDA3LCJDb21tb25OYW1lIjoiVkRVQVJUMTAiLCJzdWIiOiJWRFVBUlQxMCIsInVpZCI6InZkdWFydDEwIiwiZm9yZEJ1c2luZXNzVW5pdENvZGUiOiJGU0FNUiIsImdpdmVuTmFtZSI6IlZpY3RvciIsInNuIjoiRHVhcnRlIiwiaW5pdGlhbHMiOiJWLiIsIm1haWwiOiJ2ZHVhcnQxMEBmb3JkLmNvbSIsImVtcGxveWVlVHlwZSI6Ik0iLCJzdCI6IkJBIiwiYyI6IkJSQSIsImZvcmRDb21wYW55TmFtZSI6IklOU1QgRVVWQUxETyBMT0RJIE4gUkVHSU9OQUwgQkFISUEiLCJmb3JkRGVwdENvZGUiOiIwNjY0Nzg0MDAwIiwiZm9yZERpc3BsYXlOYW1lIjoiRHVhcnRlLCBWaWN0b3IgKFYuKSIsImZvcmREaXZBYmJyIjoiUFJEIiwiZm9yZERpdmlzaW9uIjoiUEQgT3BlcmF0aW9ucyBhbmQgUXVhbGl0eSIsImZvcmRDb21wYW55Q29kZSI6IjAwMDE1ODM4IiwiZm9yZE1hbmFnZXJDZHNpZCI6Im1tYWdyaTEiLCJmb3JkTVJSb2xlIjoiTiIsImZvcmRTaXRlQ29kZSI6IjY1MzYiLCJmb3JkVXNlclR5cGUiOiJFbXBsb3llZSIsImFwcHR5cGUiOiJQdWJsaWMiLCJhcHBpZCI6InVybjpnc2FyOmNsaWVudGlkOndlYjpwcm9kIiwiYXV0aG1ldGhvZCI6Imh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9hdXRoZW50aWNhdGlvbm1ldGhvZC93aW5kb3dzIiwiYXV0aF90aW1lIjoiMjAyNC0wMi0yN1QxMTo0ODoyNy43MzlaIiwidmVyIjoiMS4wIn0.URSkqpedgPlC0madANL-Mmt5KpSIMmiVXbLn_wvaHMmb0pHgPHYs6IyQHG_b4ZyosRwQWRkk6zDtm223YjLEnxMZ5zqGt8zMAQK-khAB8PUKrQZG6rYDEKCXGd6VApUmKIiL10aS_JXj3q4i8EYsB5dR5cjjtCdGS0enXFy7b1y9V6p0_xk9mnIoXRnMMz_CmNTMehNdZ98Qn79lOjTga0LgG6MM9TIwevM6IkmGwPoTq0QHTRiSrlvRSOs8DtFsI2P_20WSqIp_-rG-e__rEW6H3g20lnC8EeYdPwYDSMUib2Xnk-zaQWK0Op4GIBhnqomwcguIFCllrKeR87d-uw"
 
         data["MODELTXT"].replace(new_models)
         data["FULL_STATE"] = data["STATE"].apply(convert_code_into_state)
         data["FAIL_QUARTER"] = data["FAILDATE"].apply(get_quarter)
         data["FULL_VIN"] = data["ODINO"].apply(lambda x: vins.get(x, " ~ "))
-        # data[["FUNCTION_", "COMPONET", "FAILURE"]] = (
-        #     data["CDESCR"]
-        #     .apply(
-        #         lambda row: self.__classify_case(
-        #             row, credentials["url"], credentials["token"]
-        #         )
-        #     )
-        #     .to_list()
-        # )
-        # data["BINNING"] = data["COMPONET"] + " | " + data["FAILURE"]
-        # data["VFG"] = data["BINNING"].apply(lambda x: vfgs.get(x, " ~ "))
-        # data["FAILURE_MODE"] = data["BINNING"].apply(classify_binning)
-
-        async with create_async_client() as client:
-            data[
-                [
-                    "PROD_DATE",
-                    "VEHICLE_LINE_WERS",
-                    "VEHICLE_LINE_GSAR",
-                    "VEHICLE_LINE_GLOBAL",
-                    "ASSEMBLY_PLANT",
-                    "WARRANTY_START_DATE",
-                ]
-            ] = await asyncio.gather(
-                *(
-                    self.__get_info_by_vin(vin, client, gsar_token, semaphore)
-                    for vin in data["FULL_VIN"]
+        data[["FUNCTION_", "COMPONET", "FAILURE"]] = (
+            data["CDESCR"]
+            .apply(
+                lambda row: self.__classify_case(
+                    row, credentials["url"], credentials["token"]
                 )
             )
+            .to_list()
+        )
+        data["BINNING"] = data["COMPONET"] + " | " + data["FAILURE"]
+        data["VFG"] = data["BINNING"].apply(lambda x: vfgs.get(x, " ~ "))
+        data["FAILURE_MODE"] = data["BINNING"].apply(classify_binning)
+        data[
+            [
+                "PROD_DATE",
+                "VEHICLE_LINE_WERS",
+                "VEHICLE_LINE_GSAR",
+                "VEHICLE_LINE_GLOBAL",
+                "ASSEMBLY_PLANT",
+                "WARRANTY_START_DATE",
+            ]
+        ] = (
+            data["FULL_VIN"]
+            .apply(lambda vin: self.__get_info_by_vin(vin, gsar_token))
+            .to_list()
+        )
         data["REPAIR_DATE_1"] = ""
         data["REPAIR_DATE_2"] = ""
         data["To_be_Binned"] = (
@@ -132,30 +127,24 @@ class DataTransformer:
 
         return data
 
-    async def __get_info_by_vin(
-        self,
-        vin: str,
-        client: httpx.AsyncClient,
-        token: str,
-        semaphore: asyncio.Semaphore,
-    ):
+    def __get_info_by_vin(self, vin: str, token: str) -> list[str]:
         keys = ["wersVl", "origWarantDate", "prodDate", "plant", "globVl", "awsVl"]
         retrived = dict.fromkeys(keys, "")
-        async with semaphore:
-            response = await client.get(
+
+        if vin and vin[-1] != "*" and len(vin) == 17:
+            response = httpx.get(
                 str(os.getenv("GSAR_WERS_URL")),
                 params={"vin": vin},
-                headers={
-                    "Authorization": f"Bearer {token}",
+                headers={"Authorization": f"Bearer {token}"},
+                proxies={
+                    "http://": "http://internet.ford.com:83",
+                    "https://": "http://internet.ford.com:83",
                 },
             )
-
-        print(response)
-        data = dict(response.json())
-        for key in keys:
-            if key in data:
-                retrived[key] = str(data.get(key))
-        await asyncio.sleep(0.5)
+            data = dict(response.json())
+            for key in keys:
+                if key in data:
+                    retrived[key] = str(data.get(key))
 
         return list(retrived.values())
 
@@ -178,32 +167,25 @@ class DataTransformer:
             str: result of classificaiton (failure mode)
         """
         categories = load_categories("Binnings")
-        parts = (
-            "door, window, windshield, wiper, glass, hood, trunk, moonroof, "
-            + "bumper, tail light, pillar, undershield, roof rack, latch, he"
-            + "adlight, door handle, door keypad, window, weatherstripping, "
-            + "side mirror, lighting, swing gate, cowl grille, hard top, ski"
-            + "d plate, sheet metal, running boards, water leak, etc"
-        )
         text = (
-            "Question 1: For this complaint, check if it is related to an ex"
-            + f"ternal part of the car, body exterior, ({parts}). If yes, an"
-            + "swer 'F8'. Otherwise, answer 'NOT F8'. Note that most of the "
-            + "problems related to power liftgate electrical problems and re"
-            + "ar view camera are NOT F8. Question 2: For each of these sent"
-            + "ences that your answer 1 was 'F8', check if it is related to "
-            + f"only one of the following categories: {list(categories)}. Yo"
-            + "u should give only one answer with one answer for Question 1 "
-            + "and one answer for Question 2 in the following format: 'ANSWE"
-            + "R 1~~~ANSWER 2'. Note: 'OWD' means 'opened while driving' and"
-            + "'F&F' means 'fit and finish', for problems related to flushne"
-            + "ss and margin. Note 2: For model Escape (2020 forward), there"
-            + " is a common problem related to door check arm when the compl"
-            + "aint is related to the door making popping sounds, opening an"
-            + "d closing problens, hinges and welds. If you cannot relate, a"
-            + "nswer NOT SURE. Answer in the correct order. If you cannot as"
-            + "sist, answer 1, and answer 2 must be NA. You should be object"
-            + "ive and cold. Never change the answer format mentioned."
+            "Question 1: For this complaint, check if it's related to an ext"
+            + f"ernal part of the car, body exterior, ({self.parts}). If yes"
+            + ", answer 'F8'. IF not, answer 'NOT F8'. Note that most of the"
+            + " problems related to power liftgate electrical problems and r"
+            + "ear view camera are NOT F8. Question 2: For each of these sen"
+            + "tences that your answer 1 was 'F8', check if it is related to"
+            + f" only one of the following categories: {list(categories)}. Y"
+            + "ou should give only one answer with one answer for Question 1"
+            + " and one answer for Question 2 in the following format: 'ANSW"
+            + "ER 1~~~ANSWER 2'. Note: 'OWD' means 'opened while driving' an"
+            + "d 'F&F' means 'fit and finish', for problems related to flush"
+            + "ness and margin. Note 2: For model Escape (2020 forward), the"
+            + "re is a common problem related to door check arm when the com"
+            + "plaint is related to the door making popping sounds, opening "
+            + "and closing problens, hinges and welds. If you cannot relate,"
+            + " answer NOT SURE. Answer in the correct order. If you cannot "
+            + "assist, answer 1, and answer 2 must be NA. You should be obje"
+            + "ctive and cold. Never change the answer format mentioned."
         )
         content = {
             "model": "gpt-4",

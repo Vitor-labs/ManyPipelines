@@ -28,11 +28,11 @@ class Pipeline:
         Main flow of data processing
         """
         start_time = time.time()
-        self.logger.debug("Starting the ETL pipeline")
+        self.logger.info("Starting the ETL pipeline")
         extracted = self.extractor.extract()
         transformed = self.transformer.transform(extracted)
         self.loader.load_data(transformed)
-        self.logger.debug("ETL pipeline completed successfully")
-        self.logger.debug(
+        self.logger.info("ETL pipeline completed successfully")
+        self.logger.info(
             "--- %s minutes ---", round((time.time() - start_time) / 60, 2)
         )

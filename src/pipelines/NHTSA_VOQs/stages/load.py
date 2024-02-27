@@ -7,7 +7,7 @@ from datetime import date
 
 import dotenv
 import pandas as pd
-from openpyxl import load_workbook
+from openpyxl import load_workbook, Workbook
 
 from src.utils.logger import setup_logger
 from src.errors.load_error import LoadError
@@ -24,11 +24,13 @@ class DataLoader:
         load_data: saves processed data in serialized file and database.
     """
 
-    def __init__(self) -> None:
-        self.logger = logging.getLogger(__name__)
-        setup_logger()
+    logger = logging.getLogger(__name__)
+    setup_logger()
 
-    @time_logger
+    def __init__(self) -> None:
+        self.columsn = []
+
+    @time_logger(logger=logger)
     def load_data(self, contract: TransformContract) -> None:
         """
         Saves data localy in data/processed directory
@@ -38,15 +40,17 @@ class DataLoader:
         Raises:
             LoadError: Error during serialization.
         """
+        if contract.content.shape[0] == 0:
+            print("There is no new data")
+            raise LoadError("There is no new data")
         try:
-            self.logger.info("Running Load stage")
             self.__append_processed_data_excel(contract.content)
             self.__save_other_processed_data_csv(contract.content)
-            # dotenv.set_key(
-            #     dotenv.find_dotenv(),
-            #     "LAST_COMPLAINT_WAVE_DATE",
-            #     date.today().strftime("%Y%m%d"),
-            # )
+            dotenv.set_key(
+                dotenv.find_dotenv(),
+                "LAST_COMPLAINT_WAVE_DATE",
+                date.today().strftime("%Y%m%d"),
+            )
         except Exception as exc:
             self.logger.exception(exc)
             raise LoadError(str(exc)) from exc
@@ -55,28 +59,15 @@ class DataLoader:
         today = date.today().strftime("%Y-%m-%d")
         path = f"./data/processed/NHTSA_COMPLAINTS_PROCESSED_{today}.csv"
 
-        if content.shape[0] == 0:
-            print("There is no new data")
-            raise LoadError("There is no new data")
-        try:
-            data = content[
-                (content["FUNCTION_"] == "F8")
-                & (content["MFR_NAME"] != "Ford Motor Company")
-            ]
-            data.to_csv(path, index=False)
-        except Exception as exc:
-            raise LoadError(str(exc)) from exc
+        content.to_csv(path, index=False)
 
     def __append_processed_data_excel(self, dataset: pd.DataFrame) -> None:
         path = "./data/raw/F8_BACKUP.xlsx"  # <input the file in this directory>
         sheet_name = "backup"  # <here goes the sheet name>
-
-        if dataset.shape[0] == 0:
-            self.logger.warning("There is no new data")
-            raise LoadError("There is no new data")
+        # TODO: parse formulas on certain columns https://openpyxl.readthedocs.io/en/stable/formula.html
         try:
             data = dataset[dataset["FUNCTION_"] == "F8"]
-            with pd.ExcelWriter(
+            with pd.ExcelWriter(  # pylint: disable=abstract-class-instantiated
                 path, engine="openpyxl", mode="a", if_sheet_exists="overlay"
             ) as writer:
                 data[
@@ -129,6 +120,17 @@ class DataLoader:
                     header=False,
                 )
         except FileNotFoundError as exc:
-            raise LoadError(str(exc)) from exc
+            self.logger.info(exc)
+
+            workbook = Workbook()
+            workbook.create_sheet(sheet_name)
+            sheet = workbook.active
+            sheet.append(list(data.columns))  # type: ignore
+
+            workbook.save(path)
+
+            self.logger.info("%s Created", path)
+            self.__append_processed_data_excel(data)
+
         except Exception as exc:
-            raise exc
+            raise LoadError(str(exc)) from exc
