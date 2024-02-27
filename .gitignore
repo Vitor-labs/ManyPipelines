@@ -3,9 +3,9 @@
 .env
 
 # data files should not be into the repository
-# **.xlsx
-# **.xlsm
-# **.csv
+**.xlsx
+**.xlsm
+**.csv
 **.log
 **.db
 **.sqlite3
