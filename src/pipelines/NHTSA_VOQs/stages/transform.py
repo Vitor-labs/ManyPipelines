@@ -32,6 +32,8 @@ from src.utils.funtions import (
 class DataTransformer:
     """
     Class to define the flow of the data transformation step
+    TODO: add informations from GRID dataset
+    TODO: add middle async function to handle processing of requests
 
     methods:
         transform -> TransformContract: increase the dataset, adding columns
@@ -127,7 +129,11 @@ class DataTransformer:
 
         return data
 
+    @retry([Exception])
+    @rate_limiter(70, 1)
+    @lru_cache(maxsize=70)
     def __get_info_by_vin(self, vin: str, token: str) -> list[str]:
+        # TODO: change this to retrive from BigQuery
         keys = ["wersVl", "origWarantDate", "prodDate", "plant", "globVl", "awsVl"]
         retrived = dict.fromkeys(keys, "")
 

@@ -28,14 +28,14 @@ def time_logger(logger: Logger) -> Callable:
         @wraps(func)
         def wrapper(*args: List[Any], **kwargs: Dict[str, Any]) -> Any:
             try:
-                logger.debug("Running %s stage", func.__name__)
+                logger.info("Running %s stage", func.__name__)
                 t1 = time.time()
                 result = func(*args, **kwargs)
-                logger.debug("--- %s minutes ---", round(time.time() - t1 / 60, 2))
+                logger.info("--- %s minutes ---", round(time.time() - t1 / 60, 2))
                 return result
             except Exception as exc:
                 logger.exception(exc)
-                logger.debug(
+                logger.info(
                     "--- Failed in %s minutes ---", round(time.time() - t1 / 60, 2)
                 )
                 raise exc

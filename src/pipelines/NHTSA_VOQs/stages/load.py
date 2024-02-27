@@ -4,6 +4,7 @@ This module defines the basic flow of data Loading from NHTSA portal
 
 import logging
 from datetime import date
+from typing import NoReturn
 
 import dotenv
 import pandas as pd
@@ -46,11 +47,7 @@ class DataLoader:
         try:
             self.__append_processed_data_excel(contract.content)
             self.__save_other_processed_data_csv(contract.content)
-            dotenv.set_key(
-                dotenv.find_dotenv(),
-                "LAST_COMPLAINT_WAVE_DATE",
-                date.today().strftime("%Y%m%d"),
-            )
+            self.__update_env_vars(contract.content["ODINO"].max())
         except Exception as exc:
             self.logger.exception(exc)
             raise LoadError(str(exc)) from exc
@@ -60,6 +57,18 @@ class DataLoader:
         path = f"./data/processed/NHTSA_COMPLAINTS_PROCESSED_{today}.csv"
 
         content.to_csv(path, index=False)
+
+    def __update_env_vars(self, odino: str) -> None:
+        dotenv.set_key(
+            dotenv.find_dotenv(),
+            "LAST_COMPLAINT_WAVE_DATE",
+            date.today().strftime("%Y%m%d"),
+        )
+        dotenv.set_key(
+            dotenv.find_dotenv(),
+            "LAST_ODINO_CAPTURED",
+            odino,
+        )
 
     def __append_processed_data_excel(self, dataset: pd.DataFrame) -> None:
         path = "./data/raw/F8_BACKUP.xlsx"  # <input the file in this directory>
