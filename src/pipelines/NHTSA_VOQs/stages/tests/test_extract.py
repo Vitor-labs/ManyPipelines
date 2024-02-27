@@ -3,9 +3,9 @@ This module defines some test cases for extracting a dataset from
 nhtsa portal
 """
 
-from dotenv import load_dotenv, find_dotenv
 import pytest
 from pandas import DataFrame
+from dotenv import load_dotenv, find_dotenv
 
 from src.errors.extract_error import ExtractError
 from src.pipelines.NHTSA_VOQs.stages.extract import DataExtractor
