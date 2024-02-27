@@ -59,12 +59,16 @@ class DataTransformer:
         """
         try:
             self.logger.info("Running Transform stage")
+            loop = asyncio.get_event_loop()
             return TransformContract(
-                content=await self.__transform_complaints(contract)
+                content=loop.run_until_complete(self.__transform_complaints(contract))
             )
         except TransformError as exc:
             self.logger.exception(exc)
             raise exc
+        except asyncio.TimeoutError as exc:
+            self.logger.exception(exc)
+            raise TransformError(str(exc)) from exc
 
     async def __transform_complaints(self, contract: ExtractContract) -> pd.DataFrame:
         """
