@@ -29,7 +29,7 @@ class DataLoader:
     setup_logger()
 
     def __init__(self) -> None:
-        self.columsn = []
+        self.columns = []
 
     @time_logger(logger=logger)
     def load_data(self, contract: TransformContract) -> None:

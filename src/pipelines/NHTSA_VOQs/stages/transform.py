@@ -120,14 +120,22 @@ class DataTransformer:
         data["REPAIR_DATE_1"] = ""
         data["REPAIR_DATE_2"] = ""
         data["To_be_Binned"] = (
-            data["MODELTXT"] + data["YEARTXT"].astype(str) + data["CDESCR"]
+            data["MODELTXT"] + " " + data["YEARTXT"].astype(str) + " " + data["CDESCR"]
         )
         data["NewOld"] = ""
         data["New_Failure_Mode"] = ""
         data["MILEAGE_CLASS"] = data["MILES"].apply(get_mileage_class)
         data["EXTRACTED_DATE"] = contract.extract_date
 
-        return data
+        grid = pd.read_csv("./data/processed/GRID_PROCESSED_2024-02-27.csv")
+        grid.rename(
+            columns={"Affected Vehicles": "MODELTXT", "Binning": "BINNING"},
+            inplace=True,
+        )
+        grid["MODELTXT"].replace(load_new_models())
+        merged_df = pd.merge(data, grid, on=["MODELTXT", "BINNING"], how="left")
+
+        return merged_df
 
     @retry([Exception])
     @rate_limiter(70, 1)
