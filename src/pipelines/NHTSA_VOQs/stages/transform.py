@@ -88,6 +88,7 @@ class DataTransformer:
         gsar_token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6ImFSZ2hZU01kbXI2RFZpMTdWVVJtLUJlUENuayJ9.eyJhdWQiOiJ1cm46Z3NhcjpyZXNvdXJjZTp3ZWI6cHJvZCIsImlzcyI6Imh0dHBzOi8vY29ycC5zdHMuZm9yZC5jb20vYWRmcy9zZXJ2aWNlcy90cnVzdCIsImlhdCI6MTcwOTAzNDIwNywiZXhwIjoxNzA5MDYzMDA3LCJDb21tb25OYW1lIjoiVkRVQVJUMTAiLCJzdWIiOiJWRFVBUlQxMCIsInVpZCI6InZkdWFydDEwIiwiZm9yZEJ1c2luZXNzVW5pdENvZGUiOiJGU0FNUiIsImdpdmVuTmFtZSI6IlZpY3RvciIsInNuIjoiRHVhcnRlIiwiaW5pdGlhbHMiOiJWLiIsIm1haWwiOiJ2ZHVhcnQxMEBmb3JkLmNvbSIsImVtcGxveWVlVHlwZSI6Ik0iLCJzdCI6IkJBIiwiYyI6IkJSQSIsImZvcmRDb21wYW55TmFtZSI6IklOU1QgRVVWQUxETyBMT0RJIE4gUkVHSU9OQUwgQkFISUEiLCJmb3JkRGVwdENvZGUiOiIwNjY0Nzg0MDAwIiwiZm9yZERpc3BsYXlOYW1lIjoiRHVhcnRlLCBWaWN0b3IgKFYuKSIsImZvcmREaXZBYmJyIjoiUFJEIiwiZm9yZERpdmlzaW9uIjoiUEQgT3BlcmF0aW9ucyBhbmQgUXVhbGl0eSIsImZvcmRDb21wYW55Q29kZSI6IjAwMDE1ODM4IiwiZm9yZE1hbmFnZXJDZHNpZCI6Im1tYWdyaTEiLCJmb3JkTVJSb2xlIjoiTiIsImZvcmRTaXRlQ29kZSI6IjY1MzYiLCJmb3JkVXNlclR5cGUiOiJFbXBsb3llZSIsImFwcHR5cGUiOiJQdWJsaWMiLCJhcHBpZCI6InVybjpnc2FyOmNsaWVudGlkOndlYjpwcm9kIiwiYXV0aG1ldGhvZCI6Imh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9hdXRoZW50aWNhdGlvbm1ldGhvZC93aW5kb3dzIiwiYXV0aF90aW1lIjoiMjAyNC0wMi0yN1QxMTo0ODoyNy43MzlaIiwidmVyIjoiMS4wIn0.URSkqpedgPlC0madANL-Mmt5KpSIMmiVXbLn_wvaHMmb0pHgPHYs6IyQHG_b4ZyosRwQWRkk6zDtm223YjLEnxMZ5zqGt8zMAQK-khAB8PUKrQZG6rYDEKCXGd6VApUmKIiL10aS_JXj3q4i8EYsB5dR5cjjtCdGS0enXFy7b1y9V6p0_xk9mnIoXRnMMz_CmNTMehNdZ98Qn79lOjTga0LgG6MM9TIwevM6IkmGwPoTq0QHTRiSrlvRSOs8DtFsI2P_20WSqIp_-rG-e__rEW6H3g20lnC8EeYdPwYDSMUib2Xnk-zaQWK0Op4GIBhnqomwcguIFCllrKeR87d-uw"
 
         data["MODELTXT"].replace(new_models)
+        data["YEARTXT"] = data["YEARTXT"].astype("int64").replace(9999, None)
         data["FULL_STATE"] = data["STATE"].apply(convert_code_into_state)
         data["FAIL_QUARTER"] = data["FAILDATE"].apply(get_quarter)
         data["FULL_VIN"] = data["ODINO"].apply(lambda x: vins.get(x, " ~ "))
@@ -117,15 +118,28 @@ class DataTransformer:
             .apply(lambda vin: self.__get_info_by_vin(vin, gsar_token))
             .to_list()
         )
+        data["DATEA"] = pd.to_datetime(data["DATEA"], format="%Y%m%d").dt.strftime(
+            "%m/%d/%Y"
+        )
+        data["LDATE"] = pd.to_datetime(data["LDATE"], format="%Y%m%d").dt.strftime(
+            "%m/%d/%Y"
+        )
+        data["FAILDATE"] = pd.to_datetime(
+            data["FAILDATE"], format="%Y%m%d"
+        ).dt.strftime("%m/%d/%Y")
+        data["PROD_DATE"] = pd.to_datetime(
+            data["PROD_DATE"], format="%Y%b%d"
+        ).dt.strftime("%m/%d/%Y")
+        data["WARRANTY_START_DATE"] = pd.to_datetime(
+            data["WARRANTY_START_DATE"], format="%Y%b%d"
+        ).dt.strftime("%m/%d/%Y")
         data["REPAIR_DATE_1"] = ""
         data["REPAIR_DATE_2"] = ""
-        data["To_be_Binned"] = (
-            data["MODELTXT"] + " " + data["YEARTXT"].astype(str) + " " + data["CDESCR"]
-        )
-        data["NewOld"] = ""
+        data["To_be_Binned"] = ""
+        data["NewOld"] = ""  # https://openpyxl.readthedocs.io/en/stable/formula.html
         data["New_Failure_Mode"] = ""
         data["MILEAGE_CLASS"] = data["MILES"].apply(get_mileage_class)
-        data["EXTRACTED_DATE"] = contract.extract_date
+        data["EXTRACTED_DATE"] = contract.extract_date.strftime("%m/%d/%Y")
 
         grid = pd.read_csv("./data/processed/GRID_PROCESSED_2024-02-27.csv")
         grid.rename(
