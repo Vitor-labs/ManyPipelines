@@ -121,25 +121,25 @@
 ### FINAL COMPLAINT:
 ```sql
     CMPLID CHAR(9) PRIMARY KEY
-    ODINO CHAR(9)               X
+    ODINO CHAR(9)                  X
     MFR_NAME CHAR(25)
-    MAKETXT CHAR(25)            X
-    MODELTXT CHAR(256)          X
-    YEARTXT CHAR(4)             X
+    MAKETXT CHAR(25)               X
+    MODELTXT CHAR(256)             X
+    YEARTXT CHAR(4)                X
     CRASH BOOLEAN 
-    FAILDATE CHAR(8)            X
+    FAILDATE CHAR(8)               X
     FIRE BOOLEAN 
     INJURED NUMBER(2)
     DEATHS NUMBER(2)
     COMPDESC CHAR(128)
     CITY CHAR(30)
-    STATE_ CHAR(2)              X
-    VIN CHAR(11)                X
-    DATEA CHAR(8)               X
+    STATE_ CHAR(2)                 X
+    VIN CHAR(11)                   X
+    DATEA CHAR(8)                  X
     LDATE CHAR(8)
-    MILES NUMBER(7)             X
+    MILES NUMBER(7)                X
     OCCURENCES NUMBER(4)
-    CDESCR TEXT                 X
+    CDESCR TEXT                    X
     CMPL_TYPE CHAR(4)
     POLICE_RPT_YN BOOLEAN
     PURCH_DT CHAR(8)
@@ -169,25 +169,25 @@
     REPAIRED_YN BOOLEAN
     MEDICAL_ATTN BOOLEAN
     VEHICLES_TOWED_YN BOOLEAN
-    FUNCTION_ CHAR(3)               X
+    FUNCTION_ CHAR(3)              X
     COMPONET CHAR(20)
     FAILURE CHAR(40)
-    BINNING CHAR(63)                X
+    BINNING CHAR(63)               X
     FULL_STATE CHAR(30)
-    FAIL_QUARTER CHAR(6)            X
-    FULL_VIN CHAR(17)               X
-    Production_Date DATE            X
-    VFG CHAR(3)                     X
-    Vehicle_Line_WERS CHAR(128)     X
-    Vehicle_Line_GSAR CHAR(128)     X
-    Vehicle_Line_Global CHAR(128)   X
-    Assembly_Plant CHAR(40)         X
+    FAIL_QUARTER CHAR(6)           X
+    FULL_VIN CHAR(17)              X
+    Production_Date DATE           X
+    VFG CHAR(3)                    X
+    Vehicle_Line_WERS CHAR(128)    X
+    Vehicle_Line_GSAR CHAR(128)    X
+    Vehicle_Line_Global CHAR(128)  X
+    Assembly_Plant CHAR(40)        X
     Warranty_Start_Date DATE
     Repair_Date_1 DATE
     Repair_Date_2 DATE
-    EXTRACTED_DATE DATE             X
-    FAILURE_MODE TEXT               X
-    Mileage_Class TEXT              X
+    EXTRACTED_DATE DATE            X
+    FAILURE_MODE TEXT              X
+    Mileage_Class TEXT             X
 ```
 
 ### FINAL RECALL:
@@ -196,7 +196,7 @@
     REPORT_RECEIVED_DATE TEXT
     RECALL_LINK TEXT
     MANUFACTURER TEXT
-    SUBJECT TEXT --not in dashboard
+    SUBJECT_ TEXT --not in dashboard
     COMPONENT TEXT
     MFR_CAMPAIGN_NUMBER TEXT --not in dashboard
     RECALL_TYPE TEXT
@@ -207,25 +207,25 @@
     PARK_OUTSIDE_ADVISORY TEXT --not in dashboard
     DO_NOT_DRIVE_ADVISORY TEXT --not in dashboard
     COMPLETION_RATE REAL --not in dashboard
-    FUNCTION: TEXT
+    FUNCTION_: TEXT
     FAILURE_MODE: TEXT
     EXTRACTED_DATE: DATE
 ```
 
 ### GRID DATA:
 ```sql
-MODEL
-BINING
-ISSUE
-FUNCTION_
-ISSUE_TITLE
-DESCRIPTION_
-AFFECTED_VEHICLES
-DAYS_OPEN_IN_CCRG
-DAYS_OPEN_IN_CSF
-DAYS_OPEN_IN_GOV
-DAYS_OPEN_IN_EPRC
-FCA
-OVERALL_STATUS
-GRID_CREATION_DATE
+    MODEL
+    BINING
+    ISSUE
+    FUNCTION_
+    ISSUE_TITLE
+    DESCRIPTION_
+    AFFECTED_VEHICLES
+    DAYS_OPEN_IN_CCRG
+    DAYS_OPEN_IN_CSF
+    DAYS_OPEN_IN_GOV
+    DAYS_OPEN_IN_EPRC
+    FCA
+    OVERALL_STATUS
+    GRID_CREATION_DATE
 ```
