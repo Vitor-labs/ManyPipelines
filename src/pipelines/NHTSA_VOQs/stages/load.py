@@ -4,11 +4,10 @@ This module defines the basic flow of data Loading from NHTSA portal
 
 import logging
 from datetime import date
-from typing import NoReturn
 
-import dotenv
 import pandas as pd
-from openpyxl import load_workbook, Workbook
+from dotenv import set_key, find_dotenv
+from openpyxl import Workbook, load_workbook
 
 from src.utils.logger import setup_logger
 from src.errors.load_error import LoadError
@@ -29,7 +28,47 @@ class DataLoader:
     setup_logger()
 
     def __init__(self) -> None:
-        self.columns = []
+        self.columns = [
+            "CMPLID",
+            "ODINO",
+            "MAKETXT",
+            "MODELTXT",
+            "YEARTXT",
+            "FAILDATE",
+            "FAIL_QUARTER",
+            "DATEA",
+            "PROD_DATE",
+            "EXTRACTED_DATE",
+            "FULL_VIN",
+            "VIN",
+            "FUNCTION_",
+            "CDESCR",
+            "BINNING",
+            "VFG",
+            "COMPONET",
+            "FAILURE",
+            "CRASH",
+            "FIRE",
+            "INJURED",
+            "DEATHS",
+            "MILES",
+            "STATE",
+            "VEH_SPEED",
+            "DEALER_NAME",
+            "DEALER_STATE",
+            "To_be_Binned",
+            "VEHICLE_LINE_WERS",
+            "VEHICLE_LINE_GSAR",
+            "VEHICLE_LINE_GLOBAL",
+            "ASSEMBLY_PLANT",
+            "WARRANTY_START_DATE",
+            "REPAIR_DATE_1",
+            "REPAIR_DATE_2",
+            "FAILURE_MODE",
+            "NewOld",
+            "New_Failure_Mode",
+            "MILEAGE_CLASS",
+        ]
 
     @time_logger(logger=logger)
     def load_data(self, contract: TransformContract) -> None:
@@ -57,27 +96,33 @@ class DataLoader:
         path = f"./data/processed/NHTSA_COMPLAINTS_PROCESSED_{today}.csv"
 
         content.to_csv(path, index=False)
+        self.logger.info("Run of (%s) done. Weekly data saved on %s", today, path)
 
-    def __update_env_vars(self, odino: str) -> None:
-        dotenv.set_key(
-            dotenv.find_dotenv(),
+    def __update_env_vars(self, odino: int) -> None:
+        set_key(
+            find_dotenv(),
             "LAST_COMPLAINT_WAVE_DATE",
             date.today().strftime("%Y%m%d"),
         )
-        dotenv.set_key(
-            dotenv.find_dotenv(),
+        set_key(
+            find_dotenv(),
             "LAST_ODINO_CAPTURED",
-            odino,
+            str(odino),
         )
 
     def __append_processed_data_excel(self, dataset: pd.DataFrame) -> None:
-        path = "./data/raw/F8_BACKUP.xlsx"  # <input the file in this directory>
-        sheet_name = "backup"  # <here goes the sheet name>
-        # TODO: parse formulas on certain columns https://openpyxl.readthedocs.io/en/stable/formula.html
+        path = "C:/Users/VDUART10/azureford/CCM SA Team - AMBIENTE TESTE/F8_All_v3.xlsm"
+        sheet_name = "F8 All"  # <here goes the sheet name>
+        data = dataset[dataset["FUNCTION_"] == "F8"]
+
         try:
-            data = dataset[dataset["FUNCTION_"] == "F8"]
             with pd.ExcelWriter(  # pylint: disable=abstract-class-instantiated
-                path, engine="openpyxl", mode="a", if_sheet_exists="overlay"
+                path,
+                engine="openpyxl",
+                date_format="MM/DD/YYYY",
+                mode="a",
+                if_sheet_exists="overlay",
+                engine_kwargs={"keep_vba": True},
             ) as writer:
                 data[
                     [
@@ -133,7 +178,7 @@ class DataLoader:
 
             workbook = Workbook()
             workbook.create_sheet(sheet_name)
-            sheet = workbook.active
+            sheet = workbook.get_sheet_by_name(sheet_name)
             sheet.append(list(data.columns))  # type: ignore
 
             workbook.save(path)

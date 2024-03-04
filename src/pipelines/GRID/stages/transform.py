@@ -11,7 +11,7 @@ import pandas as pd
 
 from src.utils.logger import setup_logger
 from src.utils.decorators import retry, time_logger
-from src.utils.funtions import load_categories, load_classifier_credentials
+from src.utils.funtions import load_categories, load_classifier_credentials, load_new_models
 
 from src.errors.transform_error import TransformError
 from src.pipelines.GRID.contracts.extract_contract import ExtractContract
@@ -68,6 +68,7 @@ class DataTransformer:
 
         credentials = load_classifier_credentials()
         issues = pd.DataFrame(contract.raw_data)
+        issues["Affected Vehicles"].replace(load_new_models())
         issues["Extracted Date"] = contract.extract_date
         issues["Binning"] = issues.apply(
             lambda row: self.__classify_case(
