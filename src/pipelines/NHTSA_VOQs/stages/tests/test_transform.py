@@ -27,7 +27,10 @@ def setup():
 
     mock = pd.read_csv("./data/raw/mock_dataset.csv")
 
-    return ExtractContract(raw_data=mock, extract_date=date(2024, 2, 22))
+    return ExtractContract(
+        raw_data=mock[mock["MFR_NAME"] == "Ford Motor Company"],
+        extract_date=date(2024, 2, 22),
+    )
 
 
 def test_transform_sucess(setup):
@@ -41,7 +44,7 @@ def test_transform_sucess(setup):
         assert isinstance(dataset, TransformContract)
         assert "PROD_DATE" in dataset.content.columns
 
-        dataset.content.to_csv("tranformed_dataset_mock.csv")
+        dataset.content.to_csv("./data/raw/tranformed_dataset_mock.csv")
 
     except TransformError as exc:
         pytest.fail(f"Extract error catched: {exc}")

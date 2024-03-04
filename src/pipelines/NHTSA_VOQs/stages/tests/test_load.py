@@ -24,7 +24,7 @@ def setup():
     """
     load_dotenv(find_dotenv())
 
-    mock = pd.read_csv("./data/raw/tranformed_dataset_mock.csv", index_col=0)
+    mock = pd.read_csv("./data/raw/tranformed_dataset_mock.csv")
 
     return TransformContract(content=mock)
 
@@ -39,7 +39,8 @@ def test_load_sucess(setup):
 
         # test if lies where created
         assert os.path.isfile(
-            f"./data/processed/NHTSA_COMPLAINTS_PROCESSED_{today}.csv"
+            # f"./data/processed/NHTSA_COMPLAINTS_PROCESSED_{today}.csv"
+            "C:/Users/VDUART10/azureford/CCM SA Team - AMBIENTE TESTE/F8_All_v3.xlsm"
         )
 
     except LoadError as exc:
