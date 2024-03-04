@@ -10,6 +10,8 @@ from functools import wraps
 from logging import Logger
 from typing import Any, Callable, Dict, List, Optional, Type
 
+import coloredlogs
+
 
 def time_logger(logger: Logger) -> Callable:
     """
@@ -23,6 +25,12 @@ def time_logger(logger: Logger) -> Callable:
         Callable: The decorated function with time logging
         functionality added to its capability.
     """
+    # DOCS:  https://pypi.org/project/coloredlogs/
+    coloredlogs.install(
+        level="INFO",
+        logger=logger,
+        fmt="[%(levelname)s|%(module)s|%(programname)s] %(asctime)s: %(message)s",
+    )
 
     def deco_logger(func: Callable) -> Callable:
         @wraps(func)

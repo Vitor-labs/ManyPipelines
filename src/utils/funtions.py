@@ -82,7 +82,7 @@ def load_full_vins() -> Dict[str, str]:
     Returns:
         Dict[str, str]: dict with odino as key and full vin as value
     """
-    df = pd.read_excel("./data/external/NSCCV-000502-20240226.xlsx", sheet_name="VOQS")
+    df = pd.read_excel("./data/external/NSCCV-000502-20240304.xlsx", sheet_name="VOQS")
     df.dropna(inplace=True)
     voq_dict = df.set_index("ODI_ID")["VIN"].to_dict()
     return voq_dict
