@@ -21,18 +21,24 @@
 1. Install the required dependencies:
 
 ```bash
-conda create --name nhtsa-pipeline --file environment.yml
+pipenv sync
 ```
+* Asure that Pipfile is on ~/ of the project
 
 2. Activate the enviroment:
 ```bash
-conda activate nhtsa-pipeline
+pipenv shell
 ```
 
 3. Have sure that pre-commit is intalled:
 
 ```bash
 pre-commit install
+```
+
+4. Run the main test of the pipeline that you want.
+```bash
+pipenv run pytest -s -v src/pipelines/.../main/run.py
 ```
 
 ### Explanation of the Project Structure
@@ -48,9 +54,8 @@ pre-commit install
 │   ├─ 📂processed      <- The final, canonical data sets for modeling.
 │   └─ 📂raw            <- The original, immutable data dump and system logs.
 │
-├─ 📂reports            <- Logs, Docs assets and data references
-├─ 📜environment.yml    <- The requirements file for reproducing the analysis environment, e.g.
-│                           generated with `conda list -e > environment.yml`
+├─ 📂reports            <- Logs, Docs assets and data references.
+├─ 📜Pipfile            <- The requirements file.
 │
 └─ 📂src                <- Source code for use in this project.
 </pre>
@@ -91,7 +96,7 @@ pre-commit install
 </pre>
 
 ### Cloud Archtecture:
-![GCP](./reports/diagram-export-1-5-2024-12_29_33-PM.svg)
+![GCP](./reports/assets/diagram-export-1-5-2024-12_29_33-PM.svg)
 
 ### See the Docs
 
