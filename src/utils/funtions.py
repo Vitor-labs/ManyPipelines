@@ -335,15 +335,13 @@ def create_async_client() -> httpx.AsyncClient:
     Returns:
         httpx.Client: client with ford proxies
     """
-    limits = httpx.Limits(max_connections=8)  # testing with 8, default 4
-    ford_proxy = str(os.getenv("FORD_PROXY"))
+    limits = httpx.Limits(max_connections=8)
+    ford_proxy = httpx.Proxy(str(os.getenv("FORD_PROXY")))
     timeout_config = httpx.Timeout(10.0, connect=5.0, pool=4.0)
     proxy_mounts = {
-        "http://": httpx.AsyncHTTPTransport(
-            proxy=httpx.Proxy(ford_proxy), limits=limits, retries=3
-        ),
+        "http://": httpx.AsyncHTTPTransport(proxy=ford_proxy, limits=limits, retries=3),
         "https://": httpx.AsyncHTTPTransport(
-            proxy=httpx.Proxy(ford_proxy), limits=limits, retries=3
+            proxy=ford_proxy, limits=limits, retries=3
         ),
     }
     return httpx.AsyncClient(
