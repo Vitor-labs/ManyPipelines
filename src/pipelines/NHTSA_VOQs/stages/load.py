@@ -6,8 +6,8 @@ import logging
 from datetime import date
 
 import pandas as pd
+from openpyxl import Workbook
 from dotenv import set_key, find_dotenv
-from openpyxl import Workbook, load_workbook
 
 from src.utils.logger import setup_logger
 from src.errors.load_error import LoadError
@@ -179,7 +179,7 @@ class DataLoader:
             workbook = Workbook()
             workbook.create_sheet(sheet_name)
             sheet = workbook.get_sheet_by_name(sheet_name)
-            sheet.append(list(data.columns))  # type: ignore
+            sheet.append(self.columns)  # type: ignore
 
             workbook.save(path)
 
