@@ -16,7 +16,7 @@ from src.pipelines.NHTSA_VOQs.contracts.transform_contract import TransformContr
 
 
 @pytest.fixture
-def setup():
+def setup() -> ExtractContract:
     """
     test setup mocking the data extraction step
 
@@ -33,13 +33,14 @@ def setup():
     )
 
 
-def test_transform_sucess(setup):
+@pytest.mark.asyncio
+async def test_transform_sucess(setup: ExtractContract) -> None:
     """
     Test case for transforming sucess
     """
     try:
         tranformer = DataTransformer()
-        dataset = tranformer.transform(contract=setup)
+        dataset = await tranformer.transform(contract=setup)
 
         assert isinstance(dataset, TransformContract)
         assert "PROD_DATE" in dataset.content.columns
