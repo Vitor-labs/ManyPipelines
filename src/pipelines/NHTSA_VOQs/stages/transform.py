@@ -5,18 +5,20 @@ retrived from NHTSA.
 
 import os
 import logging
+import asyncio
 from typing import List
 from functools import lru_cache
 
 import httpx
 import pandas as pd
 
+from src.utils.logger import setup_logger
 from src.errors.transform_error import TransformError
+from src.utils.decorators import rate_limiter, retry, time_logger
 from src.pipelines.NHTSA_VOQs.contracts.extract_contract import ExtractContract
 from src.pipelines.NHTSA_VOQs.contracts.transform_contract import TransformContract
-from src.utils.logger import setup_logger
-from src.utils.decorators import rate_limiter, retry, time_logger
 from src.utils.funtions import (
+    create_async_client,
     load_categories,
     convert_code_into_state,
     get_quarter,
@@ -52,7 +54,7 @@ class DataTransformer:
         )
 
     @time_logger(logger=logger)
-    def transform(self, contract: ExtractContract) -> TransformContract:
+    async def transform(self, contract: ExtractContract) -> TransformContract:
         """
         Main flow to tranform data colleted from previews steps
 
@@ -65,13 +67,36 @@ class DataTransformer:
         Returns:
             TransformContract: contract with transformed data to the next step
         """
+        data = contract.raw_data
+        vins = load_full_vins()
+        new_models = load_new_models()
+
         try:
-            return TransformContract(content=self.__transform_complaints(contract))
+            data["MODELTXT"].replace(new_models)
+            data["YEAR.TXT"] = data["YEARTXT"].astype("int64").replace(9999, None)
+            data["FULL_STATE"] = data["STATE"].apply(convert_code_into_state)
+            data["FAIL_QUARTER"] = data["FAILDATE"].apply(get_quarter)
+            data["FULL_VIN"] = data["ODINO"].apply(lambda x: vins.get(x, " "))
+            data["EXTRACTED_DATE"] = contract.extract_date.strftime("%m/%d/%Y")
+            data["DATEA"] = pd.to_datetime(data["DATEA"], format="%Y%m%d").dt.strftime(
+                "%m/%d/%Y"
+            )
+            data["LDATE"] = pd.to_datetime(data["LDATE"], format="%Y%m%d").dt.strftime(
+                "%m/%d/%Y"
+            )
+            data["FAILDATE"] = pd.to_datetime(
+                data["FAILDATE"], format="%Y%m%d"
+            ).dt.strftime("%m/%d/%Y")
+
+            data = self.__add_new_columns(data)
+            data = await self.__process_vins_info(data)
+
+            return TransformContract(content=data)
         except TransformError as exc:
             self.logger.exception(exc)
             raise exc
 
-    def __transform_complaints(self, contract: ExtractContract) -> pd.DataFrame:
+    def __add_new_columns(self, data: pd.DataFrame) -> pd.DataFrame:
         """
         increments the dataset with addtional columns
         # TODO: parse formulas on certain columns https://openpyxl.readthedocs.io/en/stable/formula.html
@@ -81,19 +106,10 @@ class DataTransformer:
         Returns:
             List[TransformedDataset]: list of dict, alike a pandas dataframe
         """
-        data = contract.raw_data
         vfgs = load_vfgs()
-        vins = load_full_vins()
-        new_models = load_new_models()
         credentials = load_classifier_credentials()
-        gsar_token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6ImFSZ2hZU01kbXI2RFZpMTdWVVJtLUJlUENuayJ9.eyJhdWQiOiJ1cm46Z3NhcjpyZXNvdXJjZTp3ZWI6cHJvZCIsImlzcyI6Imh0dHBzOi8vY29ycC5zdHMuZm9yZC5jb20vYWRmcy9zZXJ2aWNlcy90cnVzdCIsImlhdCI6MTcwOTU2NzEzOCwiZXhwIjoxNzA5NTk1OTM4LCJDb21tb25OYW1lIjoiVkRVQVJUMTAiLCJzdWIiOiJWRFVBUlQxMCIsInVpZCI6InZkdWFydDEwIiwiZm9yZEJ1c2luZXNzVW5pdENvZGUiOiJGU0FNUiIsImdpdmVuTmFtZSI6IlZpY3RvciIsInNuIjoiRHVhcnRlIiwiaW5pdGlhbHMiOiJWLiIsIm1haWwiOiJ2ZHVhcnQxMEBmb3JkLmNvbSIsImVtcGxveWVlVHlwZSI6Ik0iLCJzdCI6IkJBIiwiYyI6IkJSQSIsImZvcmRDb21wYW55TmFtZSI6IklOU1QgRVVWQUxETyBMT0RJIE4gUkVHSU9OQUwgQkFISUEiLCJmb3JkRGVwdENvZGUiOiIwNjY0Nzg0MDAwIiwiZm9yZERpc3BsYXlOYW1lIjoiRHVhcnRlLCBWaWN0b3IgKFYuKSIsImZvcmREaXZBYmJyIjoiUFJEIiwiZm9yZERpdmlzaW9uIjoiUEQgT3BlcmF0aW9ucyBhbmQgUXVhbGl0eSIsImZvcmRDb21wYW55Q29kZSI6IjAwMDE1ODM4IiwiZm9yZE1hbmFnZXJDZHNpZCI6Im1tYWdyaTEiLCJmb3JkTVJSb2xlIjoiTiIsImZvcmRTaXRlQ29kZSI6IjY1MzYiLCJmb3JkVXNlclR5cGUiOiJFbXBsb3llZSIsImFwcHR5cGUiOiJQdWJsaWMiLCJhcHBpZCI6InVybjpnc2FyOmNsaWVudGlkOndlYjpwcm9kIiwiYXV0aG1ldGhvZCI6Imh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9hdXRoZW50aWNhdGlvbm1ldGhvZC93aW5kb3dzIiwiYXV0aF90aW1lIjoiMjAyNC0wMy0wNFQxNTo1MDozOC4yNTJaIiwidmVyIjoiMS4wIn0.lYjmzFBWdsfgxXjstnnpX09kljnga5YtbhlvsrvOx1IReKftzNQDd-mHSaOkP9YON7AVc85GAZzUsipZOfYUBMIOVNuG4-QhzbBiyHI3G_vJUTkk7US3YjJzOiH1_Ds6xs8EkfYX0sJEcWLHP5O0-7OTrTsbQamdLlzj08uMwJ0-fl60oHqhpPz2VGx2uMnBKS8vtweVZ_vWMk11KVs44y63T95Ozgybk-2MChF7VOTnn6zUmdCS5IiqFMjsZ0byiRB39aUYSMSMzG6MbJTHn9afCrwFZoea2Jc-IEa5gmCF7lYMGa5OiLQLgEqJBuQq8QjNCoU1FlUC5sGDepDhIg"
 
         try:
-            data["MODELTXT"].replace(new_models)
-            data["YEARTXT"] = data["YEARTXT"].astype("int64").replace(9999, None)
-            data["FULL_STATE"] = data["STATE"].apply(convert_code_into_state)
-            data["FAIL_QUARTER"] = data["FAILDATE"].apply(get_quarter)
-            data["FULL_VIN"] = data["ODINO"].apply(lambda x: vins.get(x, " ~ "))
             data[["FUNCTION_", "COMPONET", "FAILURE"]] = (
                 data["CDESCR"]
                 .apply(
@@ -106,6 +122,24 @@ class DataTransformer:
             data["BINNING"] = data["COMPONET"] + " | " + data["FAILURE"]
             data["VFG"] = data["BINNING"].apply(lambda x: vfgs.get(x, " ~ "))
             data["FAILURE_MODE"] = data["BINNING"].apply(classify_binning)
+            data["REPAIR_DATE_1"] = ""
+            data["REPAIR_DATE_2"] = ""
+            data["To_be_Binned"] = ""
+            data["NewOld"] = (
+                "New"  # https://openpyxl.readthedocs.io/en/stable/formula.html
+            )
+            data["New_Failure_Mode"] = ""
+            data["MILEAGE_CLASS"] = data["MILES"].apply(get_mileage_class)
+
+        except Exception as exc:
+            self.logger.exception(exc)
+            raise exc
+
+        return data
+
+    async def __process_vins_info(self, data: pd.DataFrame) -> pd.DataFrame:
+        gsar_token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6ImFSZ2hZU01kbXI2RFZpMTdWVVJtLUJlUENuayJ9.eyJhdWQiOiJ1cm46Z3NhcjpyZXNvdXJjZTp3ZWI6cHJvZCIsImlzcyI6Imh0dHBzOi8vY29ycC5zdHMuZm9yZC5jb20vYWRmcy9zZXJ2aWNlcy90cnVzdCIsImlhdCI6MTcwOTczMTI4NCwiZXhwIjoxNzA5NzYwMDg0LCJDb21tb25OYW1lIjoiVkRVQVJUMTAiLCJzdWIiOiJWRFVBUlQxMCIsInVpZCI6InZkdWFydDEwIiwiZm9yZEJ1c2luZXNzVW5pdENvZGUiOiJGU0FNUiIsImdpdmVuTmFtZSI6IlZpY3RvciIsInNuIjoiRHVhcnRlIiwiaW5pdGlhbHMiOiJWLiIsIm1haWwiOiJ2ZHVhcnQxMEBmb3JkLmNvbSIsImVtcGxveWVlVHlwZSI6Ik0iLCJzdCI6IkJBIiwiYyI6IkJSQSIsImZvcmRDb21wYW55TmFtZSI6IklOU1QgRVVWQUxETyBMT0RJIE4gUkVHSU9OQUwgQkFISUEiLCJmb3JkRGVwdENvZGUiOiIwNjY0Nzg0MDAwIiwiZm9yZERpc3BsYXlOYW1lIjoiRHVhcnRlLCBWaWN0b3IgKFYuKSIsImZvcmREaXZBYmJyIjoiUFJEIiwiZm9yZERpdmlzaW9uIjoiUEQgT3BlcmF0aW9ucyBhbmQgUXVhbGl0eSIsImZvcmRDb21wYW55Q29kZSI6IjAwMDE1ODM4IiwiZm9yZE1hbmFnZXJDZHNpZCI6Im1tYWdyaTEiLCJmb3JkTVJSb2xlIjoiTiIsImZvcmRTaXRlQ29kZSI6IjY1MzYiLCJmb3JkVXNlclR5cGUiOiJFbXBsb3llZSIsImFwcHR5cGUiOiJQdWJsaWMiLCJhcHBpZCI6InVybjpnc2FyOmNsaWVudGlkOndlYjpwcm9kIiwiYXV0aG1ldGhvZCI6InVybjpvYXNpczpuYW1lczp0YzpTQU1MOjIuMDphYzpjbGFzc2VzOlBhc3N3b3JkUHJvdGVjdGVkVHJhbnNwb3J0IiwiYXV0aF90aW1lIjoiMjAyNC0wMy0wNlQxMzoyNjoyMy45NzJaIiwidmVyIjoiMS4wIn0.kh7uPNLPrHmPCQ1xEE5tai2qyOCNwiPdmzOYLZUFu0TzgauCWeRKKRFfmcwFErmFFe__NQyu5PrzViTHrZg9grr1KdLV7QxVSXjtLgkJOR0cNmII_PB_vi4qehUbeGHKiCaZW_zqs-V2eNDKAuLVeYdDeMIUw7bweJmL1DL3cpitETMKU3IfZDCf17Hnug_RxsXtwAh5uTtk4AdzQ7xlEAVYkdwAX-kVCcahXhJxIZ2MzXpreVxfDBC8Ej-_2eoXu9l8EFkUr8ykr04WpWIbqmIHO4VKau4nIltZPpqE99iYh24G-tubMuzJQ45hEBlGRozpxO-QhzscrTmdD1G3GA"
+        async with create_async_client() as client:
             data[
                 [
                     "PROD_DATE",
@@ -115,72 +149,40 @@ class DataTransformer:
                     "ASSEMBLY_PLANT",
                     "WARRANTY_START_DATE",
                 ]
-            ] = (
-                data["FULL_VIN"]
-                .apply(lambda vin: self.__get_info_by_vin(vin, gsar_token))
-                .to_list()
-            )
-            data["DATEA"] = pd.to_datetime(data["DATEA"], format="%Y%m%d").dt.strftime(
-                "%m/%d/%Y"
-            )
-            data["LDATE"] = pd.to_datetime(data["LDATE"], format="%Y%m%d").dt.strftime(
-                "%m/%d/%Y"
-            )
-            data["FAILDATE"] = pd.to_datetime(
-                data["FAILDATE"], format="%Y%m%d"
-            ).dt.strftime("%m/%d/%Y")
-            data["PROD_DATE"] = (
-                pd.to_datetime(data["PROD_DATE"], format="%d-%b-%Y", errors="coerce")
-                .dt.strftime("%m/%d/%Y")
-                .replace({"NaT": ""}, regex=True)
-            )
-            data["WARRANTY_START_DATE"] = (
-                pd.to_datetime(
-                    data["WARRANTY_START_DATE"], format="%d-%b-%Y", errors="coerce"
+            ] = pd.DataFrame(
+                await asyncio.gather(
+                    *(
+                        self.__get_info_by_vin(vin, client, gsar_token)
+                        for vin in data["FULL_VIN"]
+                    )
                 )
-                .dt.strftime("%m/%d/%Y")
-                .replace({"NaT": ""}, regex=True)
+            ).values
+        data["PROD_DATE"] = (
+            pd.to_datetime(data["PROD_DATE"], format="%d-%b-%Y", errors="coerce")
+            .dt.strftime("%m/%d/%Y")
+            .replace({"NaT": ""}, regex=True)
+        )
+        data["WARRANTY_START_DATE"] = (
+            pd.to_datetime(
+                data["WARRANTY_START_DATE"], format="%d-%b-%Y", errors="coerce"
             )
-            data["REPAIR_DATE_1"] = ""
-            data["REPAIR_DATE_2"] = ""
-            data["To_be_Binned"] = ""
-            data["NewOld"] = (
-                "New"  # https://openpyxl.readthedocs.io/en/stable/formula.html
-            )
-            data["New_Failure_Mode"] = ""
-            data["MILEAGE_CLASS"] = data["MILES"].apply(get_mileage_class)
-            data["EXTRACTED_DATE"] = contract.extract_date.strftime("%m/%d/%Y")
-
-        except Exception as exc:
-            self.logger.exception(exc)
-            raise exc
-
-        # grid = pd.read_csv("./data/processed/GRID_PROCESSED_2024-02-27.csv")
-        # grid.rename(
-        #     columns={"Affected Vehicles": "MODELTXT", "Binning": "BINNING"},
-        #     inplace=True,
-        # )
-        # merged_df = pd.merge(data, grid, on=["MODELTXT", "BINNING"], how="left")
-
+            .dt.strftime("%m/%d/%Y")
+            .replace({"NaT": ""}, regex=True)
+        )
         return data
 
     @retry([Exception])
-    @rate_limiter(70, 1)
-    @lru_cache(maxsize=70)
-    def __get_info_by_vin(self, vin: str, token: str) -> list[str | None]:
-        # TODO: change this to retrive from BigQuery
+    async def __get_info_by_vin(
+        self, vin: str, client: httpx.AsyncClient, token: str
+    ) -> List[str]:  # TODO: change this to retrive from BigQuery
         keys = ["prodDate", "wersVl", "awsVl", "globVl", "plant", "origWarantDate"]
         retrived = dict.fromkeys(keys, "")
 
-        if vin and vin[-1] != "*" and len(vin) == 17:
-            response = httpx.get(
+        if vin != " ":
+            response = await client.get(
                 str(os.getenv("GSAR_WERS_URL")),
                 params={"vin": vin},
                 headers={"Authorization": f"Bearer {token}"},
-                proxies={
-                    "http://": "http://internet.ford.com:83",
-                    "https://": "http://internet.ford.com:83",
-                },
             )
             data = dict(response.json())
             for key in keys:
@@ -226,7 +228,10 @@ class DataTransformer:
             + "and closing problens, hinges and welds. If you cannot relate,"
             + " answer NOT SURE. Answer in the correct order. If you cannot "
             + "assist, answer 1, and answer 2 must be NA. You should be obje"
-            + "ctive and cold. Never change the answer format mentioned."
+            + "ctive and cold. Never change the answer format mentioned. If "
+            + "you really cannot relate to any of the mentioned categories, "
+            + "please create a new category following the standard 'PROBLEMA"
+            + "TIC PART | PROBLEM'."
         )
         content = {
             "model": "gpt-4",
@@ -243,7 +248,7 @@ class DataTransformer:
                 url,
                 headers={"Authorization": f"Bearer {token}"},
                 json=content,
-                timeout=360,
+                timeout=120,
             )
         except Exception as exc:
             self.logger.exception(exc)

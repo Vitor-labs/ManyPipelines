@@ -84,7 +84,6 @@ class DataLoader:
             print("There is no new data")
             raise LoadError("There is no new data")
         try:
-            self.__append_processed_data_excel(contract.content)
             self.__save_other_processed_data_csv(contract.content)
             self.__update_env_vars(contract.content["ODINO"].max())
         except Exception as exc:
@@ -109,82 +108,3 @@ class DataLoader:
             "LAST_ODINO_CAPTURED",
             str(odino),
         )
-
-    def __append_processed_data_excel(self, dataset: pd.DataFrame) -> None:
-        path = "C:/Users/VDUART10/azureford/CCM SA Team - AMBIENTE TESTE/F8_All_v3.xlsm"
-        sheet_name = "F8 All"  # <here goes the sheet name>
-        data = dataset[dataset["FUNCTION_"] == "F8"]
-
-        try:
-            with pd.ExcelWriter(  # pylint: disable=abstract-class-instantiated
-                path,
-                engine="openpyxl",
-                date_format="MM/DD/YYYY",
-                mode="a",
-                if_sheet_exists="overlay",
-                engine_kwargs={"keep_vba": True},
-            ) as writer:
-                data[
-                    [
-                        "CMPLID",
-                        "ODINO",
-                        "MAKETXT",
-                        "MODELTXT",
-                        "YEARTXT",
-                        "FAILDATE",
-                        "FAIL_QUARTER",
-                        "DATEA",
-                        "PROD_DATE",
-                        "EXTRACTED_DATE",
-                        "FULL_VIN",
-                        "VIN",
-                        "FUNCTION_",
-                        "CDESCR",
-                        "BINNING",
-                        "VFG",
-                        "COMPONET",
-                        "FAILURE",
-                        "CRASH",
-                        "FIRE",
-                        "INJURED",
-                        "DEATHS",
-                        "MILES",
-                        "STATE",
-                        "VEH_SPEED",
-                        "DEALER_NAME",
-                        "DEALER_STATE",
-                        "To_be_Binned",
-                        "VEHICLE_LINE_WERS",
-                        "VEHICLE_LINE_GSAR",
-                        "VEHICLE_LINE_GLOBAL",
-                        "ASSEMBLY_PLANT",
-                        "WARRANTY_START_DATE",
-                        "REPAIR_DATE_1",
-                        "REPAIR_DATE_2",
-                        "FAILURE_MODE",
-                        "NewOld",
-                        "New_Failure_Mode",
-                        "MILEAGE_CLASS",
-                    ]
-                ].to_excel(
-                    writer,
-                    sheet_name=sheet_name,
-                    startrow=writer.sheets[sheet_name].max_row,
-                    index=False,
-                    header=False,
-                )
-        except FileNotFoundError as exc:
-            self.logger.info(exc)
-
-            workbook = Workbook()
-            workbook.create_sheet(sheet_name)
-            sheet = workbook.get_sheet_by_name(sheet_name)
-            sheet.append(self.columns)  # type: ignore
-
-            workbook.save(path)
-
-            self.logger.info("%s Created", path)
-            self.__append_processed_data_excel(data)
-
-        except Exception as exc:
-            raise LoadError(str(exc)) from exc

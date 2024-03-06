@@ -68,10 +68,7 @@ class DataExtractor:
                 df = pd.read_csv(file, sep="\t", header=None, names=self.columns)
                 df.drop_duplicates(subset=["ODINO"], inplace=True)
 
-        return df[
-            (df["ODINO"] > int(str(os.getenv("LAST_ODINO_CAPTURED"))))
-            & (df["MFR_NAME"] == "Ford Motor Company")
-        ]
+        return df[df["ODINO"] > int(str(os.getenv("LAST_ODINO_CAPTURED")))]
 
     def __extract_links_from_page(self, url) -> List:
         with create_client() as client:
