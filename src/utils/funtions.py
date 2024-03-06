@@ -6,8 +6,16 @@ import os
 from datetime import datetime
 from typing import FrozenSet, Dict
 
-import httpx
 import pandas as pd
+from httpx import (
+    AsyncHTTPTransport,
+    Client,
+    AsyncClient,
+    HTTPTransport,
+    Limits,
+    Proxy,
+    Timeout,
+)
 
 
 def get_quarter(date_: str) -> str:
@@ -84,6 +92,8 @@ def load_full_vins() -> Dict[str, str]:
     """
     df = pd.read_excel("./data/external/NSCCV-000502-20240304.xlsx", sheet_name="VOQS")
     df.dropna(inplace=True)
+    df = df[~df["VIN"].str.endswith("*") & (df["VIN"] != "") & (df["VIN"] != "N/A")]
+
     voq_dict = df.set_index("ODI_ID")["VIN"].to_dict()
     return voq_dict
 
@@ -308,43 +318,41 @@ def convert_float(text: str) -> float:
         return 0.0
 
 
-def create_client() -> httpx.Client:
+def create_client() -> Client:
     """
     Creates a common client for future http requests
 
     Returns:
-        httpx.Client: client with ford proxies
+        Client: client with ford proxies
     """
     ford_proxy = str(os.getenv("FORD_PROXY"))
-    timeout_config = httpx.Timeout(10.0, connect=5.0)
+    timeout_config = Timeout(10.0, connect=5.0)
     proxy_mounts = {
-        "http://": httpx.HTTPTransport(proxy=httpx.Proxy(ford_proxy)),
-        "https://": httpx.HTTPTransport(proxy=httpx.Proxy(ford_proxy)),
+        "http://": HTTPTransport(proxy=Proxy(ford_proxy)),
+        "https://": HTTPTransport(proxy=Proxy(ford_proxy)),
     }
-    return httpx.Client(
+    return Client(
         timeout=timeout_config,
         mounts=proxy_mounts,
         verify=False,
     )
 
 
-def create_async_client() -> httpx.AsyncClient:
+def create_async_client() -> AsyncClient:
     """
     Creates a common client for future http requests
 
     Returns:
-        httpx.Client: client with ford proxies
+        Client: client with ford proxies
     """
-    limits = httpx.Limits(max_connections=8)
-    ford_proxy = httpx.Proxy(str(os.getenv("FORD_PROXY")))
-    timeout_config = httpx.Timeout(10.0, connect=5.0, pool=4.0)
+    limits = Limits(max_connections=8)
+    ford_proxy = Proxy(str(os.getenv("FORD_PROXY")))
+    timeout_config = Timeout(10.0, connect=5.0, pool=4.0)
     proxy_mounts = {
-        "http://": httpx.AsyncHTTPTransport(proxy=ford_proxy, limits=limits, retries=3),
-        "https://": httpx.AsyncHTTPTransport(
-            proxy=ford_proxy, limits=limits, retries=3
-        ),
+        "http://": AsyncHTTPTransport(proxy=ford_proxy, limits=limits, retries=3),
+        "https://": AsyncHTTPTransport(proxy=ford_proxy, limits=limits, retries=3),
     }
-    return httpx.AsyncClient(
+    return AsyncClient(
         timeout=timeout_config,
         mounts=proxy_mounts,
         verify=False,
