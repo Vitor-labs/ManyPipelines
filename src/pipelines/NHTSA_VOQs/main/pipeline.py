@@ -2,8 +2,8 @@
 This module defines the main flow of processing data.
 """
 
-import time
 import logging
+from src.utils.decorators import time_logger
 
 from src.utils.logger import setup_logger
 from src.pipelines.NHTSA_VOQs.stages.load import DataLoader
@@ -16,23 +16,21 @@ class Pipeline:
     Class to define the main flow of data processing
     """
 
+    logger = logging.getLogger(__name__)
+    setup_logger()
+
     def __init__(self) -> None:
-        self.logger = logging.getLogger(__name__)
         self.extractor = DataExtractor()
         self.transformer = DataTransformer()
         self.loader = DataLoader()
-        setup_logger()
 
-    def run(self) -> None:
+    @time_logger(logger=logger)
+    async def run(self) -> None:
         """
         Main flow of data processing
         """
-        start_time = time.time()
         self.logger.info("Starting the ETL pipeline")
-        extracted = self.extractor.extract()
-        transformed = self.transformer.transform(extracted)
-        self.loader.load_data(transformed)
-        self.logger.info("ETL pipeline completed successfully")
-        self.logger.info(
-            "--- %s minutes ---", round((time.time() - start_time) / 60, 2)
+        self.loader.load_data(
+            await self.transformer.transform(self.extractor.extract())
         )
+        self.logger.info("ETL pipeline completed successfully")

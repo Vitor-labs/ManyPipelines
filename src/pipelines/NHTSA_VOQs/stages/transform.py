@@ -6,7 +6,7 @@ retrived from NHTSA.
 import os
 import logging
 import asyncio
-from typing import List
+from typing import List, Dict
 from functools import lru_cache
 
 import httpx
@@ -24,7 +24,7 @@ from src.utils.funtions import (
     get_quarter,
     get_mileage_class,
     classify_binning,
-    load_classifier_credentials,
+    create_client,
     load_full_vins,
     load_new_models,
     load_vfgs,
@@ -34,8 +34,6 @@ from src.utils.funtions import (
 class DataTransformer:
     """
     Class to define the flow of the data transformation step
-    TODO: add informations from GRID dataset
-    TODO: add middle async function to handle processing of requests
 
     methods:
         transform -> TransformContract: increase the dataset, adding columns
@@ -78,6 +76,7 @@ class DataTransformer:
             data["FAIL_QUARTER"] = data["FAILDATE"].apply(get_quarter)
             data["FULL_VIN"] = data["ODINO"].apply(lambda x: vins.get(x, " "))
             data["EXTRACTED_DATE"] = contract.extract_date.strftime("%m/%d/%Y")
+            data["MILEAGE_CLASS"] = data["MILES"].apply(get_mileage_class)
             data["DATEA"] = pd.to_datetime(data["DATEA"], format="%Y%m%d").dt.strftime(
                 "%m/%d/%Y"
             )
@@ -99,7 +98,6 @@ class DataTransformer:
     def __add_new_columns(self, data: pd.DataFrame) -> pd.DataFrame:
         """
         increments the dataset with addtional columns
-        # TODO: parse formulas on certain columns https://openpyxl.readthedocs.io/en/stable/formula.html
         Args:
             contract (ExtractContract): dataset collected
 
@@ -107,7 +105,7 @@ class DataTransformer:
             List[TransformedDataset]: list of dict, alike a pandas dataframe
         """
         vfgs = load_vfgs()
-        credentials = load_classifier_credentials()
+        credentials = self.__load_classifier_credentials()
 
         try:
             data[["FUNCTION_", "COMPONET", "FAILURE"]] = (
@@ -122,15 +120,6 @@ class DataTransformer:
             data["BINNING"] = data["COMPONET"] + " | " + data["FAILURE"]
             data["VFG"] = data["BINNING"].apply(lambda x: vfgs.get(x, " ~ "))
             data["FAILURE_MODE"] = data["BINNING"].apply(classify_binning)
-            data["REPAIR_DATE_1"] = ""
-            data["REPAIR_DATE_2"] = ""
-            data["To_be_Binned"] = ""
-            data["NewOld"] = (
-                "New"  # https://openpyxl.readthedocs.io/en/stable/formula.html
-            )
-            data["New_Failure_Mode"] = ""
-            data["MILEAGE_CLASS"] = data["MILES"].apply(get_mileage_class)
-
         except Exception as exc:
             self.logger.exception(exc)
             raise exc
@@ -138,7 +127,7 @@ class DataTransformer:
         return data
 
     async def __process_vins_info(self, data: pd.DataFrame) -> pd.DataFrame:
-        gsar_token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6ImFSZ2hZU01kbXI2RFZpMTdWVVJtLUJlUENuayJ9.eyJhdWQiOiJ1cm46Z3NhcjpyZXNvdXJjZTp3ZWI6cHJvZCIsImlzcyI6Imh0dHBzOi8vY29ycC5zdHMuZm9yZC5jb20vYWRmcy9zZXJ2aWNlcy90cnVzdCIsImlhdCI6MTcwOTczMTI4NCwiZXhwIjoxNzA5NzYwMDg0LCJDb21tb25OYW1lIjoiVkRVQVJUMTAiLCJzdWIiOiJWRFVBUlQxMCIsInVpZCI6InZkdWFydDEwIiwiZm9yZEJ1c2luZXNzVW5pdENvZGUiOiJGU0FNUiIsImdpdmVuTmFtZSI6IlZpY3RvciIsInNuIjoiRHVhcnRlIiwiaW5pdGlhbHMiOiJWLiIsIm1haWwiOiJ2ZHVhcnQxMEBmb3JkLmNvbSIsImVtcGxveWVlVHlwZSI6Ik0iLCJzdCI6IkJBIiwiYyI6IkJSQSIsImZvcmRDb21wYW55TmFtZSI6IklOU1QgRVVWQUxETyBMT0RJIE4gUkVHSU9OQUwgQkFISUEiLCJmb3JkRGVwdENvZGUiOiIwNjY0Nzg0MDAwIiwiZm9yZERpc3BsYXlOYW1lIjoiRHVhcnRlLCBWaWN0b3IgKFYuKSIsImZvcmREaXZBYmJyIjoiUFJEIiwiZm9yZERpdmlzaW9uIjoiUEQgT3BlcmF0aW9ucyBhbmQgUXVhbGl0eSIsImZvcmRDb21wYW55Q29kZSI6IjAwMDE1ODM4IiwiZm9yZE1hbmFnZXJDZHNpZCI6Im1tYWdyaTEiLCJmb3JkTVJSb2xlIjoiTiIsImZvcmRTaXRlQ29kZSI6IjY1MzYiLCJmb3JkVXNlclR5cGUiOiJFbXBsb3llZSIsImFwcHR5cGUiOiJQdWJsaWMiLCJhcHBpZCI6InVybjpnc2FyOmNsaWVudGlkOndlYjpwcm9kIiwiYXV0aG1ldGhvZCI6InVybjpvYXNpczpuYW1lczp0YzpTQU1MOjIuMDphYzpjbGFzc2VzOlBhc3N3b3JkUHJvdGVjdGVkVHJhbnNwb3J0IiwiYXV0aF90aW1lIjoiMjAyNC0wMy0wNlQxMzoyNjoyMy45NzJaIiwidmVyIjoiMS4wIn0.kh7uPNLPrHmPCQ1xEE5tai2qyOCNwiPdmzOYLZUFu0TzgauCWeRKKRFfmcwFErmFFe__NQyu5PrzViTHrZg9grr1KdLV7QxVSXjtLgkJOR0cNmII_PB_vi4qehUbeGHKiCaZW_zqs-V2eNDKAuLVeYdDeMIUw7bweJmL1DL3cpitETMKU3IfZDCf17Hnug_RxsXtwAh5uTtk4AdzQ7xlEAVYkdwAX-kVCcahXhJxIZ2MzXpreVxfDBC8Ej-_2eoXu9l8EFkUr8ykr04WpWIbqmIHO4VKau4nIltZPpqE99iYh24G-tubMuzJQ45hEBlGRozpxO-QhzscrTmdD1G3GA"
+        gsar_token = self.__load_gsar_credential()
         async with create_async_client() as client:
             data[
                 [
@@ -170,6 +159,32 @@ class DataTransformer:
             .replace({"NaT": ""}, regex=True)
         )
         return data
+
+    def __load_classifier_credentials(self) -> Dict[str, str]:
+        """
+        create a dict with classifier endpoint and auth.
+
+        Returns:
+            Dict[str, str]: _description_
+        """
+        with create_client() as client:
+            response = client.post(
+                str(os.getenv("TOKEN_ENDPOINT")),
+                data={
+                    "client_id": str(os.getenv("CLIENT_ID")),
+                    "client_secret": str(os.getenv("CLIENT_SECRET")),
+                    "scope": str(os.getenv("SCOPE")),
+                    "grant_type": "client_credentials",
+                },
+                timeout=160,
+            )
+        return {
+            "url": str(os.getenv("API_ENDPOINT")),
+            "token": response.json()["access_token"],
+        }
+
+    def __load_gsar_credential(self) -> str:
+        return "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6ImFSZ2hZU01kbXI2RFZpMTdWVVJtLUJlUENuayJ9.eyJhdWQiOiJ1cm46Z3NhcjpyZXNvdXJjZTp3ZWI6cHJvZCIsImlzcyI6Imh0dHBzOi8vY29ycC5zdHMuZm9yZC5jb20vYWRmcy9zZXJ2aWNlcy90cnVzdCIsImlhdCI6MTcwOTczMTI4NCwiZXhwIjoxNzA5NzYwMDg0LCJDb21tb25OYW1lIjoiVkRVQVJUMTAiLCJzdWIiOiJWRFVBUlQxMCIsInVpZCI6InZkdWFydDEwIiwiZm9yZEJ1c2luZXNzVW5pdENvZGUiOiJGU0FNUiIsImdpdmVuTmFtZSI6IlZpY3RvciIsInNuIjoiRHVhcnRlIiwiaW5pdGlhbHMiOiJWLiIsIm1haWwiOiJ2ZHVhcnQxMEBmb3JkLmNvbSIsImVtcGxveWVlVHlwZSI6Ik0iLCJzdCI6IkJBIiwiYyI6IkJSQSIsImZvcmRDb21wYW55TmFtZSI6IklOU1QgRVVWQUxETyBMT0RJIE4gUkVHSU9OQUwgQkFISUEiLCJmb3JkRGVwdENvZGUiOiIwNjY0Nzg0MDAwIiwiZm9yZERpc3BsYXlOYW1lIjoiRHVhcnRlLCBWaWN0b3IgKFYuKSIsImZvcmREaXZBYmJyIjoiUFJEIiwiZm9yZERpdmlzaW9uIjoiUEQgT3BlcmF0aW9ucyBhbmQgUXVhbGl0eSIsImZvcmRDb21wYW55Q29kZSI6IjAwMDE1ODM4IiwiZm9yZE1hbmFnZXJDZHNpZCI6Im1tYWdyaTEiLCJmb3JkTVJSb2xlIjoiTiIsImZvcmRTaXRlQ29kZSI6IjY1MzYiLCJmb3JkVXNlclR5cGUiOiJFbXBsb3llZSIsImFwcHR5cGUiOiJQdWJsaWMiLCJhcHBpZCI6InVybjpnc2FyOmNsaWVudGlkOndlYjpwcm9kIiwiYXV0aG1ldGhvZCI6InVybjpvYXNpczpuYW1lczp0YzpTQU1MOjIuMDphYzpjbGFzc2VzOlBhc3N3b3JkUHJvdGVjdGVkVHJhbnNwb3J0IiwiYXV0aF90aW1lIjoiMjAyNC0wMy0wNlQxMzoyNjoyMy45NzJaIiwidmVyIjoiMS4wIn0.kh7uPNLPrHmPCQ1xEE5tai2qyOCNwiPdmzOYLZUFu0TzgauCWeRKKRFfmcwFErmFFe__NQyu5PrzViTHrZg9grr1KdLV7QxVSXjtLgkJOR0cNmII_PB_vi4qehUbeGHKiCaZW_zqs-V2eNDKAuLVeYdDeMIUw7bweJmL1DL3cpitETMKU3IfZDCf17Hnug_RxsXtwAh5uTtk4AdzQ7xlEAVYkdwAX-kVCcahXhJxIZ2MzXpreVxfDBC8Ej-_2eoXu9l8EFkUr8ykr04WpWIbqmIHO4VKau4nIltZPpqE99iYh24G-tubMuzJQ45hEBlGRozpxO-QhzscrTmdD1G3GA"
 
     @retry([Exception])
     async def __get_info_by_vin(
