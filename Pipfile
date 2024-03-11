@@ -12,6 +12,7 @@ pandera = "*"
 pyyaml = "*"
 frictionless = "*"
 psycopg2 = "*"
+openpyxl = "*"
 
 [dev-packages]
 ipykernel = "*"
