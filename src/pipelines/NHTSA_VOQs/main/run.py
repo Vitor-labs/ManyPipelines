@@ -11,7 +11,8 @@ from src.errors.transform_error import TransformError
 from src.pipelines.NHTSA_VOQs.main.pipeline import Pipeline
 
 
-def test_run_pipeline():
+@pytest.mark.asyncio
+async def test_run_pipeline():
     """
     Test case success to running the pipeline
     """
@@ -19,7 +20,7 @@ def test_run_pipeline():
     load_dotenv(dotenv_file)
 
     try:
-        Pipeline().run()
+        await Pipeline().run()
 
     except [ExtractError, TransformError, LoadError] as excinfo:
         pytest.fail(excinfo)

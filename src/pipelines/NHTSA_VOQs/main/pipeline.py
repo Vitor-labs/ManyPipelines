@@ -6,6 +6,7 @@ import logging
 from src.utils.decorators import time_logger
 
 from src.utils.logger import setup_logger
+from src.infra.db_connection import DBConnector
 from src.pipelines.NHTSA_VOQs.stages.load import DataLoader
 from src.pipelines.NHTSA_VOQs.stages.extract import DataExtractor
 from src.pipelines.NHTSA_VOQs.stages.transform import DataTransformer
@@ -29,6 +30,8 @@ class Pipeline:
         """
         Main flow of data processing
         """
+
+        DBConnector.connect_local()
         self.logger.info("Starting the ETL pipeline")
         self.loader.load_data(
             await self.transformer.transform(self.extractor.extract())
