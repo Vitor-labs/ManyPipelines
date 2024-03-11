@@ -3,8 +3,8 @@ This module defines the main schemas for the extraction stage with
 raw_complaint dataset
 """
 
-from pandas import Timestamp
-from pandera import DataFrameSchema, Column, Check, UInt, String, Bool
+from pandera import DataFrameSchema, Column, Check, UInt, String, Bool, Date
+from pandera.dtypes import DateTime, Timestamp
 
 schema = DataFrameSchema(
     columns={
@@ -55,6 +55,7 @@ schema = DataFrameSchema(
             coerce=True,
             description="Year of the vehicle fabrication",
             title="FABRICAITON YEAR",
+            drop_invalid_rows=True,
         ),
         "CRASH": Column(
             dtype=Bool,
@@ -114,13 +115,12 @@ schema = DataFrameSchema(
             description="Vehicle Identification Number",
         ),
         "DATEA": Column(
-            # Name: DATEA, Length: 234488, dtype: int64" doesn't match format "%Y%m%d", at position 0.
-            dtype="datetime64[ns]",
+            dtype=UInt,
             checks=[
                 Check.between(
-                    min_value=Timestamp(19100101, tz="UTC"),
-                    max_value=Timestamp(20301231, tz="UTC"),
-                )
+                    min_value=19100101,
+                    max_value=20301231,
+                ),
             ],
             coerce=True,
             required=True,
@@ -128,11 +128,11 @@ schema = DataFrameSchema(
             title="DATE ADDED",
         ),
         "LDATE": Column(
-            dtype="datetime64[ns]",
+            dtype=UInt,
             checks=[
                 Check.between(
-                    min_value=Timestamp(19100101, tz="UTC"),
-                    max_value=Timestamp(20301231, tz="UTC"),
+                    min_value=19100101,
+                    max_value=20301231,
                 )
             ],
             coerce=True,
@@ -142,7 +142,7 @@ schema = DataFrameSchema(
         ),
         "MILES": Column(
             dtype=UInt,
-            checks=[Check.greater_than_or_equal_to(min_value=0.0)],
+            checks=[Check.greater_than_or_equal_to(min_value=0)],
             coerce=True,
             nullable=True,
             required=True,
@@ -179,7 +179,7 @@ schema = DataFrameSchema(
             title="POLICE REPORT",
         ),
         "PURCH_DT": Column(
-            dtype="datetime64[ns]",
+            dtype=UInt,
             checks=[Check.greater_than_or_equal_to(min_value=19800101)],
             coerce=True,
             nullable=True,
@@ -258,7 +258,7 @@ schema = DataFrameSchema(
             dtype=UInt,
             checks=[
                 Check.greater_than_or_equal_to(min_value=0.0),
-                Check.less_than_or_equal_to(max_value=999.0),
+                Check.less_than_or_equal_to(max_value=300.0),
             ],
             coerce=True,
             nullable=True,
@@ -303,7 +303,7 @@ schema = DataFrameSchema(
             title="ORIGINAL EQUIPMENT",
         ),
         "MANUF_DT": Column(
-            dtype="datetime64[ns]",
+            dtype=Timestamp,
             coerce=True,
             nullable=True,
             required=True,
@@ -320,7 +320,7 @@ schema = DataFrameSchema(
         ),
         "RESTRAINT_TYPE": Column(
             dtype=String,
-            checks=[Check.isin(["B", "A"])],
+            checks=[Check.isin(["B", "A", "D"])],
             nullable=True,
             required=True,
             description="RESTRAINT INSTALLATION SYSTEM CODE",

@@ -11,7 +11,6 @@ from datetime import date, datetime
 
 import bs4
 import pandas as pd
-import pandera as pa
 
 from src.utils.logger import setup_logger
 from src.utils.funtions import create_client
@@ -57,18 +56,20 @@ class DataExtractor:
             self.logger.exception(exc)
             raise ExtractError(str(exc)) from exc
 
-    # @pa.check_output(schema, lazy=True)
     def __mount_dataset_from_content(self, info: Dict) -> pd.DataFrame:
         with create_client() as client:
             self.logger.info("Mounting extracted Dataset")
-            resp = client.get(info["url"], timeout=160).content
+            response = client.get(info["url"], timeout=160)
 
-        with ZipFile(BytesIO(resp)) as myzip:
+        with ZipFile(BytesIO(response.content)) as myzip:
             with myzip.open(myzip.namelist()[0]) as file:
                 df = pd.read_csv(file, sep="\t", header=None, names=self.columns)
                 df.drop_duplicates(subset=["ODINO"], inplace=True)
 
-        return df[df["ODINO"] > int(str(os.getenv("LAST_ODINO_CAPTURED")))]
+        return df[
+            (df["ODINO"] > int(str(os.getenv("LAST_ODINO_CAPTURED"))))
+            & (df["MFR_NAME"] == "Ford Motor Company")
+        ]
 
     def __extract_links_from_page(self, url) -> List:
         with create_client() as client:
