@@ -176,15 +176,13 @@
     FULL_STATE CHAR(30)
     FAIL_QUARTER CHAR(6)           X
     FULL_VIN CHAR(17)              X
-    Production_Date DATE           X
+    PROD_DATE DATE                 X
     VFG CHAR(3)                    X
     Vehicle_Line_WERS CHAR(128)    X
     Vehicle_Line_GSAR CHAR(128)    X
     Vehicle_Line_Global CHAR(128)  X
     Assembly_Plant CHAR(40)        X
     Warranty_Start_Date DATE
-    Repair_Date_1 DATE
-    Repair_Date_2 DATE
     EXTRACTED_DATE DATE            X
     FAILURE_MODE TEXT              X
     Mileage_Class TEXT             X
