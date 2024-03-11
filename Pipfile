@@ -11,7 +11,7 @@ python-dotenv = "*"
 pandera = "*"
 pyyaml = "*"
 frictionless = "*"
-openpyxl = "*"
+psycopg2 = "*"
 
 [dev-packages]
 ipykernel = "*"
