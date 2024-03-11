@@ -60,7 +60,7 @@ class DataTransformer:
             contract (ExtractContract): contract with raw data to transform
 
         Raises:
-            TransformError: Error occouring during this flow
+            TransformError: Error occourin.g during this flow
 
         Returns:
             TransformContract: contract with transformed data to the next step
