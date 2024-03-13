@@ -60,6 +60,7 @@ class DataLoader:
 
     def __load_on_database(self, content: pd.DataFrame) -> None:
         try:
+            # TODO: load to sqlite, change to cloud SQL
             content.to_sql(
                 "Complaints", DBConnector.local, if_exists="append", index=False
             )
