@@ -51,7 +51,6 @@
     'MEDICAL_ATTN': 'N',
     'VEHICLES_TOWED_YN': 'N'
 ```
-----
 
 ### Recalls:
 ```python
@@ -73,157 +72,114 @@
     'COMPLETION_RATE':''
 }
 ```
+----
 
-### F8 SHEET:
-```
-    Comp_ID == CMPLID
-    ODINO == ODINO
-    Brand == MAKETXT
-    Model == MODELTXT
-    Model_Year == YEARTXT
-    Fail_Date == FAILDATE
-    Fail_Quarter FAIL_QUARTER
-    VOQ_Date == DATEA
-    Production_Date
-    Wave_Date == EXTRACTED_DATE
-    Full_VIN == FULL_VIN
-    VIN == VIN
-    Function == FUNCTION_ 
-    Complaint == CDESCR
-    Binning == BINNING
-    VFG == VFG
-    Bin Overall == COMPONET
-    Detail == FAILURE
-    Crash == CRASH
-    Fire == FIRE
-    Injured Amount == INJURED
-    Death Amount == DEATHS
-    Miles == MILES
-    State == STATE_
-    Speed == VEH_SPEED
-    Dealer_Name == DEALER_NAME
-    Dealer_State == DEALER_STATE
-    To_be_Binned -> NOT MAINTEINED
-    Vehicle_Line_WERS == VEHICLE_LINE_WERS
-    Vehicle_Line_GSAR == VEHICLE_LINE_GSAR
-    Vehicle_Line_Global == VEHICLE_LINE_GLOBAL
-    Assembly_Plant == ASSEMBLY_PLANT
-    Warranty_Start_Date == WARRANTY_START_DATE
-    Repair_Date_1
-    Repair_Date_2
-    Failure_Mode
-    NewOld
-    New_Failure_Mode
-    Mileage_Class
-```
-
-
-### FINAL COMPLAINT:
+### DATA COMPLAINT:
 ```sql
-    CMPLID CHAR(9) PRIMARY KEY
-    ODINO CHAR(9)                  X
-    MFR_NAME CHAR(25)
-    MAKETXT CHAR(25)               X
-    MODELTXT CHAR(256)             X
-    YEARTXT CHAR(4)                X
-    CRASH BOOLEAN 
-    FAILDATE CHAR(8)               X
-    FIRE BOOLEAN 
-    INJURED NUMBER(2)
-    DEATHS NUMBER(2)
-    COMPDESC CHAR(128)
-    CITY CHAR(30)
-    STATE_ CHAR(2)                 X
-    VIN CHAR(11)                   X
-    DATEA CHAR(8)                  X
-    LDATE CHAR(8)
-    MILES NUMBER(7)                X
-    OCCURENCES NUMBER(4)
-    CDESCR TEXT                    X
-    CMPL_TYPE CHAR(4)
-    POLICE_RPT_YN BOOLEAN
-    PURCH_DT CHAR(8)
-    ORIG_OWER_YN BOOLEAN
-    ANTI_BRAKES_YN BOOLEAN
-    CRUISE_CONT_YN BOOLEAN
-    NUM_CYLS NUMBER(2)
-    DRIVE_TRAIN CHAR(4)
-    FUEL_SYS CHAR(4)
-    FUEL_TYPE CHAR(4)
-    TRASN_TYPE CHAR(4)
-    VEH_SPEED NUMBER(3)
-    DOT CHAR(20)
-    TIRE_SIZE CHAR(30)
-    LOC_OF_TIRE CHAR(4)
-    TIRE_FAIL_TYPE CHAR(4)
-    ORIG_EQUIP_YN BOOLEAN 
-    MANUF_DT CHAR(8)
-    SEAT_TYPE CHAR(4)
-    RESTRAINT_TYPE CHAR(4)
-    DEALER_NAME CHAR(40)
-    DEALER_TEL CHAR(20)
-    DEALER_CITY CHAR(30)
-    DEALER_STATE CHAR(2)
-    DEALER_ZIP CHAR(10)
-    PROD_TYPE CHAR(4)
-    REPAIRED_YN BOOLEAN
-    MEDICAL_ATTN BOOLEAN
-    VEHICLES_TOWED_YN BOOLEAN
-    FUNCTION_ CHAR(3)              X
-    COMPONET CHAR(20)
-    FAILURE CHAR(40)
-    BINNING CHAR(63)               X
-    FULL_STATE CHAR(30)
-    FAIL_QUARTER CHAR(6)           X
-    FULL_VIN CHAR(17)              X
-    PROD_DATE DATE                 X
-    VFG CHAR(3)                    X
-    Vehicle_Line_WERS CHAR(128)    X
-    Vehicle_Line_GSAR CHAR(128)    X
-    Vehicle_Line_Global CHAR(128)  X
-    Assembly_Plant CHAR(40)        X
-    Warranty_Start_Date DATE
-    EXTRACTED_DATE DATE            X
-    FAILURE_MODE TEXT              X
-    Mileage_Class TEXT             X
+    CMPLID INTEGER PRIMARY KEY
+    ODINO INTEGER                --X
+    MFR_NAME TEXT
+    MAKETXT TEXT                 --X
+    MODELTXT TEXT                --X
+    YEARTXT TEXT                 --X
+    CRASH INTEGER 
+    FAILDATE TEXT                --X
+    FIRE INTEGER 
+    INJURED INTEGER
+    DEATHS INTEGER
+    COMPDESC TEXT
+    CITY TEXT
+    STATE_ TEXT                  --X
+    VIN TEXT                     --X
+    DATEA TEXT                   --X
+    LDATE TEXT
+    MILES INTEGER                --X
+    OCCURENCES INTEGER
+    CDESCR TEXT                  --X
+    CMPL_TYPE TEXT
+    POLICE_RPT_YN INTEGER
+    PURCH_DT TEXT
+    ORIG_OWER_YN INTEGER
+    ANTI_BRAKES_YN INTEGER
+    CRUISE_CONT_YN INTEGER
+    NUM_CYLS INTEGER
+    DRIVE_TRAIN CHAR
+    FUEL_SYS TEXT
+    FUEL_TYPE TEXT
+    TRASN_TYPE TEXT
+    VEH_SPEED INTEGER
+    DOT TEXT
+    TIRE_SIZE TEXT
+    LOC_OF_TIRE TEXT
+    TIRE_FAIL_TYPE TEXT
+    ORIG_EQUIP_YN INTEGER 
+    MANUF_DT TEXT
+    SEAT_TYPE TEXT
+    RESTRAINT_TYPE TEXT
+    DEALER_NAME TEXT
+    DEALER_TEL TEXT
+    DEALER_CITY TEXT
+    DEALER_STATE TEXT
+    DEALER_ZIP TEXT
+    PROD_TYPE TEXT
+    REPAIRED_YN INTEGER
+    MEDICAL_ATTN INTEGER
+    VEHICLES_TOWED_YN INTEGER
+    FUNCTION_ TEXT               --X
+    COMPONET TEXT
+    FAILURE TEXT
+    BINNING TEXT                 --X
+    FULL_STATE TEXT
+    FAIL_QUARTER TEXT            --X
+    FULL_VIN TEXT                --X
+    PROD_DATE DATE               --X
+    VFG TEXT                     --X
+    VEHICLE_LINE_WERS TEXT       --X
+    VEHICLE_LINE_GSAR TEXT       --X
+    VEHICLE_LINE_Global TEXT     --X
+    ASSEMBLY_PLANT TEXT          --X
+    WARRANTY_START_DATE DATE
+    EXTRACTED_DATE DATE          --X
+    FAILURE_MODE TEXT            --X
+    MILEAGE_CLASS TEXT           --X
 ```
 
-### FINAL RECALL:
+### DATA RECALL:
 ```sql
-    NHTSA_ID TEXT PRIMARY KEY
-    REPORT_RECEIVED_DATE TEXT
-    RECALL_LINK TEXT
-    MANUFACTURER TEXT
-    SUBJECT_ TEXT --not in dashboard
-    COMPONENT TEXT
-    MFR_CAMPAIGN_NUMBER TEXT --not in dashboard
-    RECALL_TYPE TEXT
-    POTENTIALLY_AFFECTED INTEGER
-    RECALL_DESCRIPTION TEXT
-    CONSEQUENCE_SUMMARY TEXT
-    CORRECTIVE_ACTION TEXT --not i --not in dashboardn dashboard
-    PARK_OUTSIDE_ADVISORY TEXT --not in dashboard
-    DO_NOT_DRIVE_ADVISORY TEXT --not in dashboard
-    COMPLETION_RATE REAL --not in dashboard
-    FUNCTION_: TEXT
-    FAILURE_MODE: TEXT
-    EXTRACTED_DATE: DATE
+    NHTSA_ID TEXT PRIMARY KEY    --X
+    REPORT_RECEIVED_DATE TEXT    --X
+    RECALL_LINK TEXT             --X
+    MANUFACTURER TEXT            --X
+    SUBJECT_ TEXT
+    COMPONENT TEXT               --X
+    MFR_CAMPAIGN_NUMBER TEXT
+    RECALL_TYPE TEXT             --X
+    POTENTIALLY_AFFECTED INTEGER --X
+    RECALL_DESCRIPTION TEXT      --X
+    CONSEQUENCE_SUMMARY TEXT     --X
+    CORRECTIVE_ACTION TEXT
+    PARK_OUTSIDE_ADVISORY TEXT
+    DO_NOT_DRIVE_ADVISORY TEXT
+    COMPLETION_RATE REAL
+    FUNCTION_: TEXT              --X
+    FAILURE_MODE: TEXT           --X
+    EXTRACTED_DATE: DATE         --X
 ```
 
 ### GRID DATA:
 ```sql
-    MODEL
-    BINING
-    ISSUE
-    FUNCTION_
-    ISSUE_TITLE
-    DESCRIPTION_
-    AFFECTED_VEHICLES
-    DAYS_OPEN_IN_CCRG
-    DAYS_OPEN_IN_CSF
-    DAYS_OPEN_IN_GOV
-    DAYS_OPEN_IN_EPRC
-    FCA
-    OVERALL_STATUS
-    GRID_CREATION_DATE
+    MODEL TEXT
+    BINING TEXT
+    ISSUE TEXT
+    FUNCTION_ TEXT
+    ISSUE_TITLE TEXT 
+    DESCRIPTION_ TEXT 
+    AFFECTED_VEHICLES TEXT 
+    DAYS_OPEN_IN_CCRG INTEGER
+    DAYS_OPEN_IN_CSF INTEGER
+    DAYS_OPEN_IN_GOV INTEGER
+    DAYS_OPEN_IN_EPRC INTEGER
+    FCA TEXT
+    OVERALL_STATUS TEXT
+    GRID_CREATION_DATE TEXT
 ```

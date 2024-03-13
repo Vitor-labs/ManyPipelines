@@ -97,6 +97,7 @@ pipenv run pytest -s -v src/pipelines/.../main/run.py
 
 ### Cloud Archtecture:
 ![GCP](./reports/assets/diagram-export-1-5-2024-12_29_33-PM.svg)
+![DATABASE](./reports/assets/diagram-export-3-13-2024-5_07_00-PM.svg)
 
 ### See the Docs
 
