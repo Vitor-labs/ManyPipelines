@@ -2,9 +2,8 @@
 This module defines the basic flow of data Extraction from NHTSA portal
 """
 
-import logging
 import os
-from typing import Dict, List
+import logging
 from datetime import date
 
 import pandas as pd
@@ -12,7 +11,7 @@ from src.utils.decorators import time_logger
 
 from src.utils.logger import setup_logger
 from src.errors.extract_error import ExtractError
-from src.pipelines.GRID.contracts.extract_contract import ExtractContract
+from src.contracts.extract_contract import ExtractContract
 
 
 class DataExtractor:
@@ -53,7 +52,7 @@ class DataExtractor:
         except FileNotFoundError as exc:
             raise ExtractError(str(exc)) from exc
 
-    def __verify_new_issues(self, data: pd.DataFrame) -> List[Dict[str, str]]:
+    def __verify_new_issues(self, data: pd.DataFrame) -> pd.DataFrame:
         """
         Verifies new issues from filtered data and returns the columns:
         "Issue #", "Issue Title", "Description", "Affected Vehicles",
@@ -91,4 +90,4 @@ class DataExtractor:
                 )
             else:
                 break
-        return new_issues
+        return pd.DataFrame(new_issues)

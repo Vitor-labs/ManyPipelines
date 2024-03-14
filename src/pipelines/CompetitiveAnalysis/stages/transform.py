@@ -11,12 +11,10 @@ import httpx
 from pandas import DataFrame, to_datetime
 
 from src.utils.logger import setup_logger
-from src.utils.decorators import rate_limiter, retry, time_logger
 from src.errors.transform_error import TransformError
-from src.pipelines.CompetitiveAnalysis.contracts.extract_contract import ExtractContract
-from src.pipelines.CompetitiveAnalysis.contracts.transform_contract import (
-    TransformContract,
-)
+from src.contracts.extract_contract import ExtractContract
+from src.contracts.transform_contract import TransformContract
+from src.utils.decorators import rate_limiter, retry, time_logger
 from src.utils.funtions import (
     classify_binning,
     extract_url,
@@ -100,7 +98,9 @@ class DataTransformer:
     @retry([Exception])
     @rate_limiter(70, 1)
     @lru_cache(maxsize=70)
-    def __classify_case(self, prompt: str, url: str, token: str) -> Tuple[str, str]:
+    def __classify_case(
+        self, prompt: str, url: str, token: str
+    ) -> Tuple[str, str, str]:
         """
         Uses ChatGPT-4.0 to classify each recall by failure mode
 
@@ -161,9 +161,9 @@ class DataTransformer:
 
         if response.status_code == 200:
             return self.__process_response(response.json()["content"])
-        return ("Not Classified", "Not Classified")
+        return ("Not Classified", "Not Classified", "Not Classified")
 
-    def __process_response(self, message: str) -> Tuple[str, str]:
+    def __process_response(self, message: str) -> Tuple[str, str, str]:
         """
         Process response from ChatGPT, divide function, component and failure mode
         response format is: "Function~~~Result" where result is "component | failure"
@@ -179,8 +179,11 @@ class DataTransformer:
         if len(parts := message.split("~~~")) == 2:
             function, result = parts
             if function == "NOT F8":
-                return (function, "~")
+                return (function, "~", "~")
             if function == "F8":
-                return (function, result)
+                 if "|" not in result:
+                    return (function, "~", result)
+                component, failure = result.split(" | ")
+                return (function, component, failure)
 
-        return ("Not Classified", "Not Classified")
+        return ("Not Classified", "Not Classified", "Not Classified")

@@ -4,14 +4,17 @@ This module defines the basic flow of data Loading from NHTSA portal
 
 import logging
 from datetime import date
+from sqlite3 import OperationalError
 
 import dotenv
 import pandas as pd
+from dotenv import set_key, find_dotenv
 
 from src.utils.logger import setup_logger
 from src.errors.load_error import LoadError
 from src.utils.decorators import time_logger
-from src.pipelines.NHTSA_VOQs.contracts.transform_contract import TransformContract
+from src.infra.db_connection import DBConnector
+from src.contracts.transform_contract import TransformContract
 
 
 class DataLoader:
@@ -27,7 +30,8 @@ class DataLoader:
     setup_logger()
 
     def __init__(self) -> None:
-        self.columsn = []
+        self.today = date.today().strftime("%Y-%m-%d")
+        self.path = f"./data/processed/NHTSA_RECALLS_PROCESSED_{self.today}.csv"
 
     @time_logger(logger=logger)
     def load_data(self, contract: TransformContract) -> None:
@@ -40,23 +44,32 @@ class DataLoader:
             LoadError: Error during serialization.
         """
         try:
-            # self.__append_processed_data_excel(contract.content)
             self.__save_other_processed_data_csv(contract.content)
-            dotenv.set_key(
-                dotenv.find_dotenv(),
-                "LAST_RECALL_WAVE_DATE",
-                date.today().strftime("%Y%m%d"),
-            )
+            self.__load_on_database(contract.content)
+            # self.__update_env_vars()
         except Exception as exc:
             self.logger.exception(exc)
             raise LoadError(str(exc)) from exc
 
     def __save_other_processed_data_csv(self, content: pd.DataFrame) -> None:
-        today = date.today().strftime("%Y-%m-%d")
-        path = f"./data/processed/NHTSA_RECALLS_PROCESSED_{today}.csv"
+        content.to_csv(self.path, index=False)
+        self.logger.info(
+            "Run of (%s) done. Weekly data saved on %s", self.today, self.path
+        )
 
-        if content.shape[0] == 0:
-            print("There is no new data")
-            raise LoadError("There is no new data")
+    def __load_on_database(self, content: pd.DataFrame) -> None:
+        try:
+            # TODO: load to sqlite, change to cloud SQL
+            content.to_sql(
+                "Complaints", DBConnector.local, if_exists="append", index=False
+            )
+        except OperationalError as exc:
+            raise exc
+        self.logger.info("Database uploaded with run of %s", self.today)
 
-        content.to_csv(path, index=False)
+    def __update_env_vars(self) -> None:
+        set_key(
+            find_dotenv(),
+            "LAST_RECALL_WAVE_DATE",
+            date.today().strftime("%Y%m%d"),
+        )

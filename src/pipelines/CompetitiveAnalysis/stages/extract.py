@@ -13,7 +13,7 @@ from src.utils.logger import setup_logger
 from src.utils.funtions import create_client
 from src.errors.extract_error import ExtractError
 from src.utils.decorators import retry, time_logger
-from src.pipelines.NHTSA_VOQs.contracts.extract_contract import ExtractContract
+from src.contracts.extract_contract import ExtractContract
 
 
 class DataExtractor:
@@ -71,7 +71,7 @@ class DataExtractor:
                         "accessType": "DOWNLOAD",
                     },
                 )
-            self.logger.debug(response.headers["Last-Modified"])
+            self.logger.debug("Last updates from %s", response.headers["Last-Modified"])
             return ExtractContract(
                 raw_data=self.__process_response(response.text),
                 extract_date=date.today(),

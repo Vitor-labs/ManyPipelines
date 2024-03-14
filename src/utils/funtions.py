@@ -15,6 +15,7 @@ from httpx import (
     Limits,
     Proxy,
     Timeout,
+    HTTPStatusError,
 )
 
 
@@ -357,3 +358,32 @@ def create_async_client() -> AsyncClient:
         mounts=proxy_mounts,
         verify=False,
     )
+
+
+def load_classifier_credentials() -> Dict[str, str]:
+    """
+    create a dict with classifier endpoint and auth.
+
+    Returns:
+        Dict[str, str]: dict with url and token if reponse status code is 200
+    """
+    try:
+        with create_client() as client:
+            response = client.post(
+                str(os.getenv("TOKEN_ENDPOINT")),
+                data={
+                    "client_id": str(os.getenv("CLIENT_ID")),
+                    "client_secret": str(os.getenv("CLIENT_SECRET")),
+                    "scope": str(os.getenv("SCOPE")),
+                    "grant_type": "client_credentials",
+                },
+                timeout=160,
+            )
+            response.raise_for_status()
+    except HTTPStatusError as exc:
+        raise exc
+
+    return {
+        "url": str(os.getenv("API_ENDPOINT")),
+        "token": response.json()["access_token"],
+    }

@@ -13,7 +13,7 @@ from src.utils.logger import setup_logger
 from src.errors.load_error import LoadError
 from src.utils.decorators import time_logger
 from src.infra.db_connection import DBConnector
-from src.pipelines.NHTSA_VOQs.contracts.transform_contract import TransformContract
+from src.contracts.transform_contract import TransformContract
 
 
 class DataLoader:
