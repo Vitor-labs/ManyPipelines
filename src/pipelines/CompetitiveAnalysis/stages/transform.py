@@ -181,8 +181,9 @@ class DataTransformer:
             if function == "NOT F8":
                 return (function, "~", "~")
             if function == "F8":
-                 if "|" not in result:
+                if "|" not in result:
                     return (function, "~", result)
+
                 component, failure = result.split(" | ")
                 return (function, component, failure)
 

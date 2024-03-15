@@ -6,7 +6,6 @@ import logging
 from datetime import date
 from sqlite3 import OperationalError
 
-import dotenv
 import pandas as pd
 from dotenv import set_key, find_dotenv
 

@@ -248,7 +248,6 @@ def load_categories(flag: str = "Binnings") -> FrozenSet[str]:
         raise ValueError(
             f"Invalid flag '{flag}' provided. Use only  'Binnings', 'Failures', 'Component'."
         )
-
     categories = set()
     with open("./data/external/binnings.txt", encoding="utf-8", mode="r") as file:
         for line in file.readlines():
