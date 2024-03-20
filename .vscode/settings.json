@@ -11,5 +11,14 @@
     "python.testing.autoTestDiscoverOnSaveEnabled": true,
     "files.exclude": {
         "**/__pycache__": true
-    }
+    },
+    "sqltools.useNodeRuntime": true,
+    "sqltools.connections": [
+        {
+            "previewLimit": 50,
+            "driver": "SQLite",
+            "name": "SQUAD database",
+            "database": "${workspaceFolder:SQUAD-Pipelines}/database.sqlite3"
+        }
+    ]
 }
