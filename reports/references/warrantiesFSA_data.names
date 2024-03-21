@@ -1,0 +1,70 @@
+WARRANTIES & FSA
+
+The WARRANTIES & FSA file contains a defined GSAR base data from a request with the following filters:
+
+- Model Year from 2001 until present year (2024)
+- Cost Category only of "All vehicle Coverages / Contractual"
+- Region Built as North America
+- QB Global Sub Group as "GQB2A, GQB2B & GQB2C"
+- FCC Bin Type diffenrent from Misbuilt Vehicle
+
+File characteristics:
+
+-  All dates are in MMDDYYYY format
+-  Field FCC Authorization defines FSA as S / O
+
+Change log:
+1.Document created at 03/20/2024
+2.Filed#42 added
+
+Last Updated March 20, 2024
+
+
+FIELDS:
+=======
+
+Field#  Name                           Type                  Description
+------  ------------------------------  --------------------  -----------------------------------------------------------------------------------
+1       Model Year                     INTEGER               The model year of the vehicle
+2       Model Year (Fixed)             INTEGER               The fixed model year of the vehicle
+3       Model Year (Sales)             INTEGER               The sales model year of the vehicle
+4       Model Year (Manufacturing)     INTEGER               The manufacturing model year of the vehicle
+5       VIN                            VARCHAR(17)           Vehicle Identification Number
+6       Claim Key                      BIGINT                Unique identifier for the claim
+7       Vehicle Line Global            VARCHAR(20)           Code representing the global vehicle line
+8       Vehicle Line Global Desc       VARCHAR(50)           Description of the global vehicle line
+9       Vehicle Line WERS [VL]         VARCHAR(10)           WERS code for the vehicle line
+10      Market Derived [MD]            CHAR(1)               Market derived code (e.g., 'F' for fleet)
+11      Body/Cab Type [BS/CA]          VARCHAR(10)           Code for the body or cab type
+12      Version/Series [VS/SE]         VARCHAR(10)           Code for the version or series of the vehicle
+13      Drive Type [DR]                VARCHAR(5)            Code for the drive type (e.g., 'C/A' for all-wheel drive)
+14      Engine [EN]                    VARCHAR(10)           Code for the engine type
+15      Transmission [TR]              VARCHAR(10)           Code for the transmission type
+16      Assembly Plant [AAG]           VARCHAR(10)           Code for the assembly plant
+17      Production Date                DATE                  Date the vehicle was produced
+18      Warranty Start Date            DATE                  Date the warranty started
+19      Repair Dealer Name             VARCHAR(50)           Name of the dealer performing the repair
+20      Document Number                VARCHAR(20)           Document number for the repair
+21      Repair Dealer Phone Num        VARCHAR(15)           Phone number of the repair dealer
+22      WCC                            VARCHAR(10)           Warranty Claim Code
+23      Customer Concern Code          VARCHAR(10)           Code for the customer's concern
+24      Condition Code                 VARCHAR(10)           Code describing the condition of the issue
+25      Load Date                      DATE                  Date the information was loaded into the system
+26      Repair Date                    DATE                  Date the repair was performed
+27      TIS                            INTEGER               Time in service (in months)
+28      Mileage                        INTEGER               Mileage of the vehicle at the time of repair
+29      Material Cost                  DECIMAL(10,2)         Cost of materials for the repair
+30      Labor Cost                     DECIMAL(10,2)         Cost of labor for the repair
+31      Total Cost Gross               DECIMAL(10,2)         Total gross cost of the repair
+32      Labor Hours                    DECIMAL(5,2)          Hours of labor required for the repair
+33      Repair Dealer Code             VARCHAR(10)           Code for the repair dealer
+34      Repair Dealer Sub Code         VARCHAR(10)           Sub-code for the repair dealer
+35      Region Repaired                VARCHAR(20)           Region where the repair was performed
+36      Repair Dealer State            VARCHAR(20)           State where the repair dealer is located
+37      Technician Comments            TEXT                  Comments from the technician on the repair
+38      Customer Comments              TEXT                  Comments from the customer regarding the issue
+39      Repair Dealer Area Code        VARCHAR(5)            Area code of the repair dealer
+40      Country Repaired               VARCHAR(20)           Country where the repair was performed
+41      Sell Dealer Code               VARCHAR(10)           Code of the dealer that sold the vehicle
+
+42      FCC Authorization              VARCHAR(1)            Code that defines FSA ("S"/"O") from Warranties

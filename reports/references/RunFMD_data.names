@@ -1,0 +1,69 @@
+RunFMD
+
+The RunFMD file contains GSAR base data with DTC info:
+
+File characteristics:
+
+-  All dates are in MMDDYYYY format
+-  dunno anymore
+
+Change log:
+1.Document created at 03/20/2024
+
+Last Updated March 20, 2024
+
+
+FIELDS:
+=======
+Field#  Name                    Type                    Description
+------  ----------------------- ----------------------- -------------------------------------------------------------------------------------
+1       RecordID                INTEGER                 Unique identifier for the record
+2       Status                  VARCHAR(10)             Status of the claim (e.g., "Closed")
+3       Claim                   INTEGER                 Claim number
+4       VIN                     VARCHAR(17)             Vehicle Identification Number
+5       Failure Mode            TEXT                    Description of the failure mode
+6       Suspect Failure Mode    TEXT                    Suspected failure mode description
+7       Claim_Type              VARCHAR(50)             Type of claim (e.g., "Component Replacement")
+8       DTCs                    TEXT                    Diagnostic Trouble Codes in JSON format
+9       TIS                     INTEGER                 Time in service (months)
+10      Odo                     INTEGER                 Odometer reading at claim time
+11      Claim_Date              DATE                    Date of the claim
+12      Repair                  DATE                    Date of the repair
+13      Veh_Build               DATE                    Vehicle build date
+14      MY                      INTEGER                 Model Year
+15      MY_Fixed                INTEGER                 Fixed Model Year
+16      Vehicle                 VARCHAR(20)             Vehicle model code
+17      Pack                    VARCHAR(10)             Pack type or code
+18      Causal_Base             VARCHAR(10)             Base part number of the causal part
+19      Mat_Cost                DECIMAL(10,2)           Material cost associated with the claim
+20      Tot_Cost                DECIMAL(10,2)           Total cost of the claim
+21      Pack_SN                 VARCHAR(30)             Serial number of the pack
+22      ECB Bin                 VARCHAR(20)             ECB binning information
+23      Created                 TIMESTAMP               Record creation timestamp
+24      Modified                TIMESTAMP               Last modification timestamp
+25      Replaced_Parts          VARCHAR(100)            Part numbers of replaced parts
+26      Tech_Comm               TEXT                    Technician comments on the repair
+27      Cust_Comm               TEXT                    Customer comments on the issue
+28      Compliance Asset Id     VARCHAR(20)             Compliance asset identification
+29      Dealer                  VARCHAR(50)             Dealer code or name
+30      WCC                     VARCHAR(10)             Warranty Claim Code
+31      Causal_Prefix           VARCHAR(10)             Prefix of the causal part number
+32      Causal_Suffix           VARCHAR(10)             Suffix of the causal part number
+33      CCC                     VARCHAR(10)             Customer Concern Code
+34      Cond_Code               VARCHAR(10)             Condition code
+35      Region                  VARCHAR(20)             Region of the repair
+36      State                   VARCHAR(20)             State of the repair dealer
+37      Country                 VARCHAR(20)             Country of the repair
+38      VFG                     VARCHAR(10)             VFG code
+39      Notes                   TEXT                    Additional notes
+40      AWS_maintenance_date    DATE                    AWS maintenance date
+41      Alias                   VARCHAR(50)             Alias or nickname for the record
+42      Claim_Stat              VARCHAR(10)             Claim status
+43      ECB                     VARCHAR(5)              Indicates if ECB was involved ("Yes" or "No")
+44      Pack Build              DATE                    Pack build date
+45      Count Related Comp      INTEGER                 Count of related components
+46      $>2.5K                  VARCHAR(5)              Indicator if cost is greater than $2500 ("TRUE" or "FALSE")
+47      T50$                    VARCHAR(10)             T50$ code or identifier
+48      T50#                    VARCHAR(10)             T50# code or identifier
+49      ECB Comments            TEXT                    Additional comments related to ECB
+50      $>2500 Status           VARCHAR(10)             Status related to the $250
