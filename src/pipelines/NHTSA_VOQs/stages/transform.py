@@ -6,7 +6,7 @@ retrived from NHTSA.
 import os
 import logging
 import asyncio
-from typing import List, Dict
+from typing import Tuple
 from functools import lru_cache
 
 import httpx
@@ -43,6 +43,7 @@ class DataTransformer:
     setup_logger()
 
     def __init__(self) -> None:
+        self.categories = list(load_categories("Binnings"))
         self.parts = (
             "door, window, windshield, wiper, glass, hood, trunk, moonroof, "
             + "bumper, tail light, pillar, undershield, roof rack, latch, he"
@@ -161,12 +162,39 @@ class DataTransformer:
         return data
 
     def __load_gsar_credential(self) -> str:
-        return "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6ImFSZ2hZU01kbXI2RFZpMTdWVVJtLUJlUENuayJ9.eyJhdWQiOiJ1cm46Z3NhcjpyZXNvdXJjZTp3ZWI6cHJvZCIsImlzcyI6Imh0dHBzOi8vY29ycC5zdHMuZm9yZC5jb20vYWRmcy9zZXJ2aWNlcy90cnVzdCIsImlhdCI6MTcwOTczMTI4NCwiZXhwIjoxNzA5NzYwMDg0LCJDb21tb25OYW1lIjoiVkRVQVJUMTAiLCJzdWIiOiJWRFVBUlQxMCIsInVpZCI6InZkdWFydDEwIiwiZm9yZEJ1c2luZXNzVW5pdENvZGUiOiJGU0FNUiIsImdpdmVuTmFtZSI6IlZpY3RvciIsInNuIjoiRHVhcnRlIiwiaW5pdGlhbHMiOiJWLiIsIm1haWwiOiJ2ZHVhcnQxMEBmb3JkLmNvbSIsImVtcGxveWVlVHlwZSI6Ik0iLCJzdCI6IkJBIiwiYyI6IkJSQSIsImZvcmRDb21wYW55TmFtZSI6IklOU1QgRVVWQUxETyBMT0RJIE4gUkVHSU9OQUwgQkFISUEiLCJmb3JkRGVwdENvZGUiOiIwNjY0Nzg0MDAwIiwiZm9yZERpc3BsYXlOYW1lIjoiRHVhcnRlLCBWaWN0b3IgKFYuKSIsImZvcmREaXZBYmJyIjoiUFJEIiwiZm9yZERpdmlzaW9uIjoiUEQgT3BlcmF0aW9ucyBhbmQgUXVhbGl0eSIsImZvcmRDb21wYW55Q29kZSI6IjAwMDE1ODM4IiwiZm9yZE1hbmFnZXJDZHNpZCI6Im1tYWdyaTEiLCJmb3JkTVJSb2xlIjoiTiIsImZvcmRTaXRlQ29kZSI6IjY1MzYiLCJmb3JkVXNlclR5cGUiOiJFbXBsb3llZSIsImFwcHR5cGUiOiJQdWJsaWMiLCJhcHBpZCI6InVybjpnc2FyOmNsaWVudGlkOndlYjpwcm9kIiwiYXV0aG1ldGhvZCI6InVybjpvYXNpczpuYW1lczp0YzpTQU1MOjIuMDphYzpjbGFzc2VzOlBhc3N3b3JkUHJvdGVjdGVkVHJhbnNwb3J0IiwiYXV0aF90aW1lIjoiMjAyNC0wMy0wNlQxMzoyNjoyMy45NzJaIiwidmVyIjoiMS4wIn0.kh7uPNLPrHmPCQ1xEE5tai2qyOCNwiPdmzOYLZUFu0TzgauCWeRKKRFfmcwFErmFFe__NQyu5PrzViTHrZg9grr1KdLV7QxVSXjtLgkJOR0cNmII_PB_vi4qehUbeGHKiCaZW_zqs-V2eNDKAuLVeYdDeMIUw7bweJmL1DL3cpitETMKU3IfZDCf17Hnug_RxsXtwAh5uTtk4AdzQ7xlEAVYkdwAX-kVCcahXhJxIZ2MzXpreVxfDBC8Ej-_2eoXu9l8EFkUr8ykr04WpWIbqmIHO4VKau4nIltZPpqE99iYh24G-tubMuzJQ45hEBlGRozpxO-QhzscrTmdD1G3GA"
+        return (
+            "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6ImFSZ2hZU01kbXI2RFZ"
+            + "pMTdWVVJtLUJlUENuayJ9.eyJhdWQiOiJ1cm46Z3NhcjpyZXNvdXJjZTp3ZWI"
+            + "6cHJvZCIsImlzcyI6Imh0dHBzOi8vY29ycC5zdHMuZm9yZC5jb20vYWRmcy9z"
+            + "ZXJ2aWNlcy90cnVzdCIsImlhdCI6MTcwOTczMTI4NCwiZXhwIjoxNzA5NzYwM"
+            + "Dg0LCJDb21tb25OYW1lIjoiVkRVQVJUMTAiLCJzdWIiOiJWRFVBUlQxMCIsIn"
+            + "VpZCI6InZkdWFydDEwIiwiZm9yZEJ1c2luZXNzVW5pdENvZGUiOiJGU0FNUiI"
+            + "sImdpdmVuTmFtZSI6IlZpY3RvciIsInNuIjoiRHVhcnRlIiwiaW5pdGlhbHMi"
+            + "OiJWLiIsIm1haWwiOiJ2ZHVhcnQxMEBmb3JkLmNvbSIsImVtcGxveWVlVHlwZ"
+            + "SI6Ik0iLCJzdCI6IkJBIiwiYyI6IkJSQSIsImZvcmRDb21wYW55TmFtZSI6Ik"
+            + "lOU1QgRVVWQUxETyBMT0RJIE4gUkVHSU9OQUwgQkFISUEiLCJmb3JkRGVwdEN"
+            + "vZGUiOiIwNjY0Nzg0MDAwIiwiZm9yZERpc3BsYXlOYW1lIjoiRHVhcnRlLCBW"
+            + "aWN0b3IgKFYuKSIsImZvcmREaXZBYmJyIjoiUFJEIiwiZm9yZERpdmlzaW9uI"
+            + "joiUEQgT3BlcmF0aW9ucyBhbmQgUXVhbGl0eSIsImZvcmRDb21wYW55Q29kZS"
+            + "I6IjAwMDE1ODM4IiwiZm9yZE1hbmFnZXJDZHNpZCI6Im1tYWdyaTEiLCJmb3J"
+            + "kTVJSb2xlIjoiTiIsImZvcmRTaXRlQ29kZSI6IjY1MzYiLCJmb3JkVXNlclR5"
+            + "cGUiOiJFbXBsb3llZSIsImFwcHR5cGUiOiJQdWJsaWMiLCJhcHBpZCI6InVyb"
+            + "jpnc2FyOmNsaWVudGlkOndlYjpwcm9kIiwiYXV0aG1ldGhvZCI6InVybjpvYX"
+            + "NpczpuYW1lczp0YzpTQU1MOjIuMDphYzpjbGFzc2VzOlBhc3N3b3JkUHJvdGV"
+            + "jdGVkVHJhbnNwb3J0IiwiYXV0aF90aW1lIjoiMjAyNC0wMy0wNlQxMzoyNjoy"
+            + "My45NzJaIiwidmVyIjoiMS4wIn0.kh7uPNLPrHmPCQ1xEE5tai2qyOCNwiPdm"
+            + "zOYLZUFu0TzgauCWeRKKRFfmcwFErmFFe__NQyu5PrzViTHrZg9grr1KdLV7Q"
+            + "xVSXjtLgkJOR0cNmII_PB_vi4qehUbeGHKiCaZW_zqs-V2eNDKAuLVeYdDeMI"
+            + "Uw7bweJmL1DL3cpitETMKU3IfZDCf17Hnug_RxsXtwAh5uTtk4AdzQ7xlEAVY"
+            + "kdwAX-kVCcahXhJxIZ2MzXpreVxfDBC8Ej-_2eoXu9l8EFkUr8ykr04WpWIbq"
+            + "mIHO4VKau4nIltZPpqE99iYh24G-tubMuzJQ45hEBlGRozpxO-QhzscrTmdD1"
+            + "G3GA"
+        )
 
     @retry([Exception])
     async def __get_info_by_vin(
         self, vin: str, client: httpx.AsyncClient, token: str
-    ) -> List[str]:  # TODO: change this to retrive from BigQuery
+    ) -> Tuple[str, str, str, str, str, str]:
         keys = ["prodDate", "wersVl", "awsVl", "globVl", "plant", "origWarantDate"]
         retrived = dict.fromkeys(keys, "")
 
@@ -186,7 +214,9 @@ class DataTransformer:
     @retry([Exception])
     @rate_limiter(70, 1)
     @lru_cache(maxsize=70)
-    def __classify_case(self, complaint: str, url: str, token: str) -> List[str]:
+    def __classify_case(
+        self, complaint: str, url: str, token: str
+    ) -> Tuple[str, str, str]:
         """
         Uses ChatGPT-4.0 to classify each recall by failure mode
 
@@ -199,9 +229,8 @@ class DataTransformer:
             exc: ConnectionError, API not responded
 
         Returns:
-            str: result of classificaiton (failure mode)
+            Tuple: result of classificaiton (failure mode)
         """
-        categories = load_categories("Binnings")
         text = (
             "Question 1: For this complaint, check if it's related to an ext"
             + f"ernal part of the car, body exterior, ({self.parts}). If yes"
@@ -209,21 +238,21 @@ class DataTransformer:
             + " problems related to power liftgate electrical problems and r"
             + "ear view camera are NOT F8. Question 2: For each of these sen"
             + "tences that your answer 1 was 'F8', check if it is related to"
-            + f" only one of the following categories: {list(categories)}. Y"
-            + "ou should give only one answer with one answer for Question 1"
-            + " and one answer for Question 2 in the following format: 'ANSW"
-            + "ER 1~~~ANSWER 2'. Note: 'OWD' means 'opened while driving' an"
-            + "d 'F&F' means 'fit and finish', for problems related to flush"
-            + "ness and margin. Note 2: For model Escape (2020 forward), the"
-            + "re is a common problem related to door check arm when the com"
-            + "plaint is related to the door making popping sounds, opening "
-            + "and closing problens, hinges and welds. If you cannot relate,"
-            + " answer NOT SURE. Answer in the correct order. If you cannot "
-            + "assist, answer 1, and answer 2 must be NA. You should be obje"
-            + "ctive and cold. Never change the answer format mentioned. If "
-            + "you really cannot relate to any of the mentioned categories, "
-            + "please create a new category following the standard 'PROBLEMA"
-            + "TIC PART | PROBLEM'."
+            + f" only one of the following categories: {self.categories}. Yo"
+            + "u should give only one answer with one answer for Question 1 "
+            + "and one answer for Question 2 in the following format: 'ANSWE"
+            + "R 1~~~ANSWER 2'. Note: 'OWD' means 'opened while driving' and"
+            + " 'F&F' means 'fit and finish', for problems related to flushn"
+            + "ess and margin. Note 2: For model Escape (2020 forward), ther"
+            + "e is a common problem related to door check arm when the comp"
+            + "laint is related to the door making popping sounds, opening a"
+            + "nd closing problens, hinges and welds. If you cannot relate, "
+            + "answer NOT SURE. Answer in the correct order. If you cannot a"
+            + "ssist, answer 1, and answer 2 must be NA. You should be objec"
+            + "tive and cold. Never change the answer format mentioned. If y"
+            + "ou really cannot relate to any of the mentioned categories, p"
+            + "lease create a new category following the standard 'PROBLEMAT"
+            + "IC PART | PROBLEM'."
         )
         content = {
             "model": "gpt-4",
@@ -250,7 +279,7 @@ class DataTransformer:
             return self.__process_response(response.json()["content"])
         return ["NOT CLASSIFIED", "~", "~"]
 
-    def __process_response(self, message: str) -> List[str]:
+    def __process_response(self, message: str) -> Tuple[str, str, str]:
         """
         Process response from ChatGPT, divide function, component and failure mode
         response format is: "Function~~~Result" where result is "component | failure"
@@ -259,7 +288,7 @@ class DataTransformer:
             data (str): api response message
 
         Returns:
-            List[str | float]: function, component, failure
+            Tuple: function, component, failure
         """
         if "\n" in message:
             message = message.split("\n")[0]

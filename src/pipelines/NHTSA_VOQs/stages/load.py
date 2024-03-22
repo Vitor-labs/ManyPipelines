@@ -20,6 +20,7 @@ class DataLoader:
     """
     Class to define the flow of saving the data already transformed into CSV's
     and GCP Cloud SQL.
+    TODO: divide load step to save on different tables.
 
     methods:
         load_data: saves processed data in serialized file and database.
@@ -47,7 +48,7 @@ class DataLoader:
         try:
             self.__save_other_processed_data_csv(contract.content)
             self.__load_on_database(contract.content)
-            # self.__update_env_vars(contract.content["ODINO"].max())
+            self.__update_env_vars(contract.content["ODINO"].max())
         except Exception as exc:
             self.logger.exception(exc)
             raise LoadError(str(exc)) from exc
@@ -60,9 +61,8 @@ class DataLoader:
 
     def __load_on_database(self, content: pd.DataFrame) -> None:
         try:
-            # TODO: load to sqlite, change to cloud SQL
             content.to_sql(
-                "Complaints", DBConnector.local, if_exists="append", index=False
+                "Dim_Complaints", DBConnector.local, if_exists="append", index=False
             )
         except OperationalError as exc:
             raise exc

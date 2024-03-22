@@ -11,11 +11,15 @@ import pandas as pd
 
 from src.utils.logger import setup_logger
 from src.utils.decorators import retry, time_logger
-from src.utils.funtions import load_categories, load_classifier_credentials, load_new_models
+from src.utils.funtions import (
+    load_categories,
+    load_classifier_credentials,
+    load_new_models,
+)
 
 from src.errors.transform_error import TransformError
-from src.pipelines.GRID.contracts.extract_contract import ExtractContract
-from src.pipelines.GRID.contracts.transform_contract import TransformContract
+from src.contracts.extract_contract import ExtractContract
+from src.contracts.transform_contract import TransformContract
 
 
 class DataTransformer:
@@ -30,7 +34,7 @@ class DataTransformer:
     setup_logger()
 
     def __init__(self) -> None:
-        self.names = []
+        self.classes = list(load_categories())
 
     @time_logger(logger=logger)
     def transform(self, contract: ExtractContract) -> TransformContract:
@@ -55,7 +59,7 @@ class DataTransformer:
     def __process_new_issue(self, contract: ExtractContract) -> pd.DataFrame:
         """
         Processes extracted dataset, add new column binning, translate column
-        Afected Vehicles to common vehicle. TODO: translate vehicle
+        Afected Vehicles to common vehicle.
 
         Args:
             contract (ExtractContract): dataset extracted from grid sheet.
@@ -94,17 +98,17 @@ class DataTransformer:
             str: result of classificaiton (failure mode)
         """
         text = (
-            f"{data}. For this sentences that, check if it is related to onl"
-            + f"y one of the following categories: {list(load_categories())}"
-            + ". Your answer must be only one of these categories. Note: 'OW"
-            + "D' means 'opened while driving' and 'F&F' means 'fit and fini"
-            + "sh', for problems related to flushness and margin. Note 2: Fo"
-            + "r model Escape (2020 forward), there is a common problem rela"
-            + "ted to door check arm when the complaint is related to the do"
-            + "or making popping sounds, opening and closing problens, hinge"
-            + "s and welds. If you cannot assist, answer NA. You should be o"
-            + "bjective and cold. Never change the answer format mentioned a"
-            + "nd Never create a new categorie."
+            f'"{data}". For this sentences that, check if it is related to'
+            + f"only one of the following categories: {self.classes}. Your a"
+            + "nswer must be only one of these categories. Note: 'OWD' means"
+            + " 'opened while driving' and 'F&F' means 'fit and finish', for"
+            + " problems related to flushness and margin. Note 2: For model "
+            + "Escape (2020 forward), there is a common problem related to d"
+            + "oor check arm when the complaint is related to the door makin"
+            + "g popping sounds, opening and closing problens, hinges and we"
+            + "lds. If you cannot assist, answer NA. You should be objective"
+            + " and cold. Never change the answer format mentioned and Never"
+            + " create a new categorie."
         )
         content = {
             "model": "gpt-4",
