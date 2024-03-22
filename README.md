@@ -7,6 +7,7 @@
 - [How to run this project](#how-to-run-this-project)
   - [Explanation of the Project Structure](#explanation-of-the-project-structure)
   - [Pipeline Archtecture](#pipeline-archtecture)
+  - [Database Feeding](#pipelines-feeding)
   - [Cloud Archtecture:](#cloud-archtecture)
   - [See the Docs](#see-the-docs)
 
@@ -90,10 +91,20 @@ pipenv run pytest -s -v src/pipelines/.../main/run.py
 │     ├─🐍extract       <- Defines Extract Data Step.
 │     ├─🐍transform     <- Defines Transform Data Step.
 │     └─🐍load          <- Defines Load Data Step.
-│   
-│    
+│
 └─📂utils            <- Some helper functions with decorators and loggers.
 </pre>
+
+### Pipelines Feeding:
+<p>
+Our pipelines feeds many databases and here are our processes by order of running:
+
+1. GRID Pipeline is the first to run, it collects some issues to relate latter.
+2. NHTSA VOQs is the second, it collects All brands Complaints, ford and not.
+3. CompetitiveAnalysis runs on third place to collect all Recalls and relates to collected Complaints.
+4. Forty and last is the Warranties pipeline, that collects data from GSAR and RunFMD.
+</p>
+
 
 ### Cloud Archtecture:
 ![GCP](./reports/assets/diagram-export-1-5-2024-12_29_33-PM.svg)

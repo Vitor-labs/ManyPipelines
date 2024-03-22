@@ -1,0 +1,34 @@
+WARRANTIES SPEND DAILY
+
+The WARRANTIES SPEND DAILY file contains a defined GSAR base data from a request with the following filters:
+
+- Model Year from 2001 until present year (2024)
+- Cost Category only of "All vehicle Coverages / Contractual"
+- Region Built as North America
+- QB Global Sub Group as "GQB2A, GQB2B & GQB2C"
+- FCC Bin Type diffenrent from Misbuilt Vehicle
+
+File characteristics:
+
+-  All dates are in MMDDYYYY format
+
+Change log:
+1.Document created at 03/20/2024
+
+Last Updated March 20, 2024
+
+
+FIELDS:
+=======
+Field#  Name                 Type                    Description
+------  -------------------- ----------------------- --------------------------------------------------------------------------------
+1       MATRIX_NO            INTEGER                 Unique identifier for the matrix entry
+2       PROD_MONTH           INTEGER                 Production month (numeric representation, 1-12)
+3       REPAIRS              DECIMAL(10,2)           Total cost of repairs
+4       COSTS                DECIMAL(10,2)           Additional costs associated with the repair or incident
+5       VEHICLES             INTEGER                 Number of vehicles involved or affected
+6       MDL_YR_CD            INTEGER                 Model year code of the vehicle(s)
+7       QB Global Sub Group  VARCHAR(50)             Code for the QB global sub-group, describing a part or system category
+8       LOAD_DT              DATE                    Date the information was loaded into the database
+9       Propulsion Type      VARCHAR(50)             Type of propulsion system in the vehicle (e.g., "ICE - INTERNAL COMBUSTION ENGINE")
+10      LOGIC                VARCHAR(50)             Description or note regarding the logic applied or any specifics (e.g., "no logic")
