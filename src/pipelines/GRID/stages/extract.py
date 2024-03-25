@@ -56,6 +56,9 @@ class DataExtractor:
         """
         Verifies new issues from filtered data and returns the columns:
         "Issue #", "Issue Title", "Description", "Affected Vehicles",
+        TODO: this code bellow is the definition of chorume, please change that.
+        FIXME: find a way to change the last issues capture based on int count.
+               just return the filterd dataset after, it's more simple.
 
         Args:
             data (pd.DataFrame): filtered dataframe

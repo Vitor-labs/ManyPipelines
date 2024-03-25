@@ -45,7 +45,7 @@ class DataLoader:
         try:
             self.__save_other_processed_data_csv(contract.content)
             self.__load_on_database(contract.content)
-            # self.__update_env_vars()
+            self.__update_env_vars()
         except Exception as exc:
             self.logger.exception(exc)
             raise LoadError(str(exc)) from exc
@@ -60,7 +60,7 @@ class DataLoader:
         try:
             # TODO: load to sqlite, change to cloud SQL
             content.to_sql(
-                "Complaints", DBConnector.local, if_exists="append", index=False
+                "Fact_Complaints", DBConnector.local, if_exists="append", index=False
             )
         except OperationalError as exc:
             raise exc

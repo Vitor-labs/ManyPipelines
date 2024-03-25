@@ -25,6 +25,10 @@ class DataExtractor:
     setup_logger()
 
     def __init__(self) -> None:
+        """
+        TODO: Change to dinamically get the columns from extract schema
+        like on NHTSA VOQs pipeline
+        """
         self.columns = [
             "REPORT_RECEIVED_DATE",
             "NHTSA_ID",

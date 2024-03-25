@@ -80,7 +80,7 @@ class DataTransformer:
         )
         data["RECALL_LINK"].apply(extract_url)
         data["POTENTIALLY_AFFECTED"] = data["POTENTIALLY_AFFECTED"].astype(int)
-        data[["FUNCTION_", "BINNING"]] = data.apply(
+        data[["FUNCTION_", "COMPONENT", "FAILURE"]] = data.apply(
             lambda row: self.__classify_case(
                 (
                     f'With this problematic component {str(row["COMPONENT"])} '
@@ -89,7 +89,8 @@ class DataTransformer:
                 credentials["url"],
                 credentials["token"],
             )
-        )
+        ).to_list()
+        data["BINNING"] = data["COMPONET"] + " | " + data["FAILURE"]
         data["FAILURE_MODE"] = data["BINNING"].apply(classify_binning)
         data["EXTRACTED_DATE"] = contract.extract_date
 
