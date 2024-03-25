@@ -7,9 +7,9 @@ from src.utils.decorators import time_logger
 
 from src.utils.logger import setup_logger
 from src.infra.db_connection import DBConnector
-from src.pipelines.CompetitiveAnalysis.stages.load import DataLoader
-from src.pipelines.CompetitiveAnalysis.stages.extract import DataExtractor
-from src.pipelines.CompetitiveAnalysis.stages.transform import DataTransformer
+from src.pipelines.Recalls.stages.load import DataLoader
+from src.pipelines.Recalls.stages.extract import DataExtractor
+from src.pipelines.Recalls.stages.transform import DataTransformer
 
 
 class Pipeline:
