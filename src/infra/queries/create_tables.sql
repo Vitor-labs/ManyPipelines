@@ -16,16 +16,17 @@ CREATE TABLE IF NOT EXISTS Dim_VinInfo (
 	VEHICLE_LINE_GSAR TEXT,
 	VEHICLE_LINE_Global TEXT,
 	ASSEMBLY_PLANT TEXT,
+	FUEL_TYPE TEXT,
+	FUEL_TYPE_ENG TEXT,
 	PROD_DATE TEXT CHECK(length(PROD_DATE) == 10),
-	WARRANTY_START_DATE TEXT CHECK(length(WARRANTY_START_DATE) == 10)
+	WARRANTY_START_DATE TEXT CHECK(length(WARRANTY_START_DATE) == 10),
+	MODIFIED_AT TEXT CHECK(length(MODIFIED_AT) == 10)
 ) WITHOUT ROWID;
 
 CREATE TABLE IF NOT EXISTS Dim_Problems (
 	BINNING TEXT PRIMARY KEY, 			-- "PROBLEMATIC_PART | FAILURE_CASE" string
 	FUNCTION_ TEXT NOT NULL,				-- For now we only work with F8 and F3 cases.
 	VFG TEXT NOT NULL,							-- Binning Group, aggregated by comoponent
-	WCC TEXT NOT NULL,							-- VFG part specificaiton
-	CCC TEXT NOT NULL,							-- other minor VFG part specificaiton
 	PROBLEMATIC_PART TEXT NOT NULL,	-- Component that got the Complaint
 	FAILURE_CASE TEXT NOT NULL,			-- Motivation of the Complaint
 	FAILURE_MODE TEXT NOT NULL			-- Group of commom Failure Cases
@@ -146,6 +147,8 @@ CREATE TABLE IF NOT EXISTS Fact_Warraties (
 	PRIMARY_DTCS TEXT,
 	ECB_EXCEPTION INTEGER,
 	ID_DEL INTEGER,
+	WCC TEXT NOT NULL,										-- VFG part specificaiton
+	CCC TEXT NOT NULL,										-- other minor VFG part specificaiton
 	SYSTEM_EXPORT TEXT,
 	CREATED_BY TEXT 
 	MODIFIED_BY TEXT,
