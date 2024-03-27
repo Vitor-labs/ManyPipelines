@@ -3,10 +3,10 @@ This module defines
 """
 
 import os
+import sqlite3
 from datetime import datetime
 from typing import FrozenSet, Dict
 
-import pandas as pd
 from httpx import (
     AsyncHTTPTransport,
     Client,
@@ -44,13 +44,12 @@ def load_new_models() -> Dict[str, str]:
         Dict[str, str]: dict for replacement
     """
     return {
-        "ESCAPE HYBRID": "ESCAPE",
         "C-MAX HYBRID": "C-MAX",
-        "MILAN HYBRID": "MILAN",
-        "EXPLORER SPORT": "EXPLORER",
-        "EXPLORER SPORT TRAC": "EXPLORER",
-        "FUSION ENERGI": "FUSION",
         "C-MAX ENERGI": "C-MAX",
+        "E-150": "E-SERIES",
+        "E-250": "E-SERIES",
+        "E-350": "E-SERIES",
+        "E-450": "E-SERIES",
         "F-250": "SUPERDUTY",
         "F-350": "SUPERDUTY",
         "F-350 SD": "SUPERDUTY",
@@ -58,22 +57,25 @@ def load_new_models() -> Dict[str, str]:
         "F-450 SD": "SUPERDUTY",
         "F-550": "SUPERDUTY",
         "F-550 SD": "SUPERDUTY",
-        "SUPERDUTY SD": "SUPERDUTY",
         "F53": "F-53",
-        "CORSAIR": "CORSAIR / MKC",
         "MKC": "CORSAIR / MKC",
-        "ZEPHYR": "ZEPHYR / MKZ",
-        "MKZ": "ZEPHYR / MKZ",
-        "NAUTILUS": "NAUTILUS / MKX",
-        "MKX": "NAUTILUS / MKX",
-        "AVIATOR": "AVIATOR / MKT",
-        "MKT": "AVIATOR / MKT",
-        "CONTINENTAL": "CONTINENTAL / MKS",
         "MKS": "CONTINENTAL / MKS",
-        "E-150": "E-SERIES",
-        "E-250": "E-SERIES",
-        "E-350": "E-SERIES",
-        "E-450": "E-SERIES",
+        "MKT": "AVIATOR / MKT",
+        "MKX": "NAUTILUS / MKX",
+        "MKZ": "ZEPHYR / MKZ",
+        "ESCAPE HYBRID": "ESCAPE",
+        "FUSION ENERGI": "FUSION",
+        "MILAN HYBRID": "MILAN",
+        "CONTINENTAL": "CONTINENTAL / MKS",
+        "TRANSIT CONNECT": "TRANSIT CONNECT",
+        "EXPLORER SPORT": "EXPLORER",
+        "EXPLORER SPORT TRAC": "EXPLORER",
+        "MOUNTAINEER": "MOUNTAINEER",
+        "CORSAIR": "CORSAIR / MKC",
+        "NAUTILUS": "NAUTILUS / MKX",
+        "AVIATOR": "AVIATOR / MKT",
+        "ZEPHYR": "ZEPHYR / MKZ",
+        "SUPERDUTY SD": "SUPERDUTY",
         # Include the replacements to correct potential duplicated replacements
         "CORSAIR / CORSAIR / MKC": "CORSAIR / MKC",
         "ZEPHYR / ZEPHYR / MKZ": "ZEPHYR / MKZ",
@@ -86,17 +88,28 @@ def load_new_models() -> Dict[str, str]:
 
 def load_full_vins() -> Dict[str, str]:
     """
-    Loads newest full vins.
+    Reads the 'Dim_VinInfo' table from database and returns a dictionary
+    with the primary keys (Full Vins) and all values of the column "ODINO".
 
     Returns:
         Dict[str, str]: dict with odino as key and full vin as value
     """
-    df = pd.read_excel("./data/external/NSCCV-000502-20240304.xlsx", sheet_name="VOQS")
-    df.dropna(inplace=True)
-    df = df[~df["VIN"].str.endswith("*") & (df["VIN"] != "") & (df["VIN"] != "N/A")]
+    try:
+        with sqlite3.connect("your_database.db") as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT ID, ODINO FROM Dim_VinInfo")
+            rows = cursor.fetchall()
+            results = {}
 
-    voq_dict = df.set_index("ODI_ID")["VIN"].to_dict()
-    return voq_dict
+            for row in rows:
+                vin, odino = row
+                results[odino] = vin
+
+            return results
+
+    except sqlite3.DatabaseError as exc:
+        print(f"Database error: {exc}")
+        raise exc
 
 
 def get_mileage_class(miles: int) -> str:
@@ -151,140 +164,88 @@ def classify_binning(binning: str) -> str:
     return ""
 
 
-def convert_code_into_state(state_code: str) -> str:
+def get_state_names() -> Dict[str, str]:
     """
-    Converts state acronim into state full name
-
-    Args:
-        state_code (str): two letters state acronim
+    mapping of states codes and names
 
     Returns:
-        str: State complete name
+        Dict[str, str]: dict with mapping
+    """
+    return {
+        "AK": "NA-USA-AK",
+        "AL": "NA-USA-AL",
+        "AR": "NA-USA-AR",
+        "AZ": "NA-USA-AZ",
+        "CA": "NA-USA-CA",
+        "CO": "NA-USA-CO",
+        "CT": "NA-USA-CT",
+        "DC": "NA-USA-DC",
+        "DE": "NA-USA-DE",
+        "FL": "NA-USA-FL",
+        "GA": "NA-USA-GA",
+        "HI": "NA-USA-HI",
+        "IA": "NA-USA-IA",
+        "ID": "NA-USA-ID",
+        "IL": "NA-USA-IL",
+        "IN": "NA-USA-IN",
+        "KS": "NA-USA-KS",
+        "KY": "NA-USA-KY",
+        "LA": "NA-USA-LA",
+        "MA": "NA-USA-MA",
+        "MD": "NA-USA-MD",
+        "ME": "NA-USA-ME",
+        "MI": "NA-USA-MI",
+        "MN": "NA-USA-MN",
+        "MO": "NA-USA-MO",
+        "MS": "NA-USA-MS",
+        "MT": "NA-USA-MT",
+        "NC": "NA-USA-NC",
+        "ND": "NA-USA-ND",
+        "NE": "NA-USA-NE",
+        "NH": "NA-USA-NH",
+        "NJ": "NA-USA-NJ",
+        "NM": "NA-USA-NM",
+        "NV": "NA-USA-NV",
+        "NY": "NA-USA-NY",
+        "OH": "NA-USA-OH",
+        "OK": "NA-USA-OK",
+        "OR": "NA-USA-OR",
+        "PA": "NA-USA-PA",
+        "RI": "NA-USA-RI",
+        "SC": "NA-USA-SC",
+        "SD": "NA-USA-SD",
+        "TN": "NA-USA-TN",
+        "TX": "NA-USA-TX",
+        "UT": "NA-USA-UT",
+        "VA": "NA-USA-VA",
+        "VT": "NA-USA-VT",
+        "WA": "NA-USA-WA",
+        "WI": "NA-USA-WI",
+        "WV": "NA-USA-WV",
+        "WY": "NA-USA-WY",
+    }
+
+
+def load_categories() -> FrozenSet[str]:
+    """
+    Accesses the 'Dim_Problems' table and selects all values from the
+    'BINNING' column where the 'FUNCTION_' column value is 'F3'.
+    TODO: change to Cloud SQL when deployed
+
+    Returns:
+        FrozenSet[str]: categories values that match the criteria.
     """
     try:
-        if state_code.isnumeric():
-            return "~"
-        states = {
-            "Alabama": "AL",
-            "Alaska": "AK",
-            "Arizona": "AZ",
-            "Arkansas": "AR",
-            "California": "CA",
-            "Colorado": "CO",
-            "Connecticut": "CT",
-            "Delaware": "DE",
-            "District of Columbia": "DC",
-            "Florida": "FL",
-            "Georgia": "GA",
-            "Hawaii": "HI",
-            "Idaho": "ID",
-            "Illinois": "IL",
-            "Indiana": "IN",
-            "Iowa": "IA",
-            "Kansas": "KS",
-            "Kentucky": "KY",
-            "Louisiana": "LA",
-            "Maine": "ME",
-            "Maryland": "MD",
-            "Massachusetts": "MA",
-            "Michigan": "MI",
-            "Minnesota": "MN",
-            "Mississippi": "MS",
-            "Missouri": "MO",
-            "Montana": "MT",
-            "Nebraska": "NE",
-            "Nevada": "NV",
-            "New Hampshire": "NH",
-            "New Jersey": "NJ",
-            "New Mexico": "NM",
-            "New York": "NY",
-            "North Carolina": "NC",
-            "North Dakota": "ND",
-            "Ohio": "OH",
-            "Oklahoma": "OK",
-            "Oregon": "OR",
-            "Pennsylvania": "PA",
-            "Rhode Island": "RI",
-            "South Carolina": "SC",
-            "South Dakota": "SD",
-            "Tennessee": "TN",
-            "Texas": "TX",
-            "Utah": "UT",
-            "Vermont": "VT",
-            "Virginia": "VA",
-            "Washington": "WA",
-            "West Virginia": "WV",
-            "Wisconsin": "WI",
-            "Wyoming": "WY",
-            "American Samoa": "AS",
-            "Federated States of Micronesia": "FM",
-            "Guam": "GU",
-            "Marshall Islands": "MH",
-            "Commonwealth of the Northern Mariana Islands": "MP",
-            "Palau": "PW",
-            "Puerto Rico": "PR",
-            "U.S. Minor Outlying Islands": "M",
-            "U.S. Virgin Islands": "VI",
-        }
-        if state_code not in states.values():
-            return "~"
-        return [k for k, v in states.items() if v == state_code][0]
+        with sqlite3.connect("your_database.db") as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT BINNING FROM Dim_Problems WHERE FUNCTION_ = 'F3'")
+            rows = cursor.fetchall()
 
-    except KeyError:
-        return "~"
+        return frozenset([row[0] for row in rows])
 
-
-def load_categories(flag: str = "Binnings") -> FrozenSet[str]:
-    """
-    Loads categories for classification based on a flag
-
-    Args:
-        flag (str): describes which type of categories return. Default to Binnings
-
-    Returns:
-        List[str]: categories filtered by flag
-    """
-    if flag not in {"Binnings", "Failures", "Components"}:
-        raise ValueError(
-            f"Invalid flag '{flag}' provided. Use only  'Binnings', 'Failures', 'Component'."
-        )
-    categories = set()
-    with open("./data/external/binnings.txt", encoding="utf-8", mode="r") as file:
-        for line in file.readlines():
-            binning = line.split(",")[1]
-            if flag == "Binnings":
-                categories.add(binning.strip("\n"))
-            if flag == "Failures":
-                if "|" not in binning:
-                    continue
-                categories.add(binning.split(" | ")[1].strip("\n"))
-            if flag == "Components":
-                categories.add(binning.split(" | ")[0])
-
-    return frozenset(categories)
-
-
-def load_vfgs() -> Dict[str, str]:
-    """
-    loads vfg categories in memory for complaints transformations
-
-    Raises:
-        exc: FileNotFound Error
-
-    Returns:
-        Dict[str, str]: dict with unique binning as key and general vfg as value
-    """
-    vfgs = {}
-    try:
-        with open("./data/external/binnings.txt", encoding="utf-8", mode="r") as file:
-            for line in file.readlines():
-                VFG, binning = line.split(",")
-                vfgs.update({binning: VFG})
-
-    except FileNotFoundError as exc:
+    except sqlite3.DatabaseError as exc:
+        print(f"Database error: {exc}")
         raise exc
-
-    return vfgs
 
 
 def extract_url(text: str) -> str:

@@ -11,13 +11,11 @@ from src.errors.transform_error import TransformError
 from src.pipelines.NHTSA_VOQs.main.pipeline import Pipeline
 
 
-@pytest.mark.asyncio
 async def test_run_pipeline():
     """
     Test case success to running the pipeline
     """
-    dotenv_file = find_dotenv()
-    load_dotenv(dotenv_file)
+    load_dotenv(find_dotenv())
 
     try:
         await Pipeline().run()

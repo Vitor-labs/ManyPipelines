@@ -3,10 +3,7 @@ This module defines the basic flow of data Tranformation from data
 retrived from NHTSA.
 """
 
-import os
 import logging
-import asyncio
-from typing import Tuple
 from functools import lru_cache
 
 import httpx
@@ -18,16 +15,13 @@ from src.contracts.extract_contract import ExtractContract
 from src.contracts.transform_contract import TransformContract
 from src.utils.decorators import rate_limiter, retry, time_logger
 from src.utils.funtions import (
-    create_async_client,
-    load_categories,
-    convert_code_into_state,
-    get_quarter,
-    get_mileage_class,
-    classify_binning,
-    load_full_vins,
-    load_new_models,
-    load_vfgs,
     load_classifier_credentials,
+    get_state_names,
+    get_mileage_class,
+    load_categories,
+    load_new_models,
+    load_full_vins,
+    get_quarter,
 )
 
 
@@ -43,7 +37,7 @@ class DataTransformer:
     setup_logger()
 
     def __init__(self) -> None:
-        self.categories = list(load_categories("Binnings"))
+        self.categories = list(load_categories())
         self.parts = (
             "door, window, windshield, wiper, glass, hood, trunk, moonroof, "
             + "bumper, tail light, pillar, undershield, roof rack, latch, he"
@@ -51,9 +45,10 @@ class DataTransformer:
             + "side mirror, lighting, swing gate, cowl grille, hard top, ski"
             + "d plate, sheet metal, running boards, water leak, etc"
         )
+        self.credentials = load_classifier_credentials()
 
     @time_logger(logger=logger)
-    async def transform(self, contract: ExtractContract) -> TransformContract:
+    def transform(self, contract: ExtractContract) -> TransformContract:
         """
         Main flow to tranform data colleted from previews steps
 
@@ -68,19 +63,16 @@ class DataTransformer:
         """
         data = contract.raw_data
         vins = load_full_vins()
-        new_models = load_new_models()
 
         try:
-            data["MODELTXT"].replace(new_models)
-            data["YEAR.TXT"] = data["YEARTXT"].astype("int64").replace(9999, None)
-            data["FULL_STATE"] = data["STATE"].apply(convert_code_into_state)
+            data["ODINO"] = data["ODINO"].astype("int64")
+            data["MODELTXT"].replace(load_new_models())
+            data["YEARTXT"] = data["YEARTXT"].astype("int64").replace(9999, None)
+            data["MILES"] = data["MILES"].astype("int64")
             data["FAIL_QUARTER"] = data["FAILDATE"].apply(get_quarter)
             data["FULL_VIN"] = data["ODINO"].apply(lambda x: vins.get(x, " "))
             data["EXTRACTED_DATE"] = contract.extract_date.strftime("%m/%d/%Y")
             data["MILEAGE_CLASS"] = data["MILES"].apply(get_mileage_class)
-            data["DATEA"] = pd.to_datetime(data["DATEA"], format="%Y%m%d").dt.strftime(
-                "%m/%d/%Y"
-            )
             data["LDATE"] = pd.to_datetime(data["LDATE"], format="%Y%m%d").dt.strftime(
                 "%m/%d/%Y"
             )
@@ -88,135 +80,20 @@ class DataTransformer:
                 data["FAILDATE"], format="%Y%m%d"
             ).dt.strftime("%m/%d/%Y")
 
-            data = self.__add_new_columns(data)
-            data = await self.__process_vins_info(data)
+            # Assigning foreing keys
+            data["PROBLEM_ID"] = data["CDESCR"].apply(self.__classify_case)
+            data["LOCATION_ID"] = data["STATE"].replace(get_state_names)
+            data["RECALL_ID"] = "~"
 
             return TransformContract(content=data)
         except TransformError as exc:
             self.logger.exception(exc)
             raise exc
 
-    def __add_new_columns(self, data: pd.DataFrame) -> pd.DataFrame:
-        """
-        increments the dataset with addtional columns
-        Args:
-            contract (ExtractContract): dataset collected
-
-        Returns:
-            List[TransformedDataset]: list of dict, alike a pandas dataframe
-        """
-        vfgs = load_vfgs()
-        credentials = load_classifier_credentials()
-
-        try:
-            data[["FUNCTION_", "COMPONET", "FAILURE"]] = (
-                data["CDESCR"]
-                .apply(
-                    lambda row: self.__classify_case(
-                        row, credentials["url"], credentials["token"]
-                    )
-                )
-                .to_list()
-            )
-            data["BINNING"] = data["COMPONET"] + " | " + data["FAILURE"]
-            data["VFG"] = data["BINNING"].apply(lambda x: vfgs.get(x, " ~ "))
-            data["FAILURE_MODE"] = data["BINNING"].apply(classify_binning)
-        except Exception as exc:
-            self.logger.exception(exc)
-            raise exc
-
-        return data
-
-    async def __process_vins_info(self, data: pd.DataFrame) -> pd.DataFrame:
-        gsar_token = self.__load_gsar_credential()
-        async with create_async_client() as client:
-            data[
-                [
-                    "PROD_DATE",
-                    "VEHICLE_LINE_WERS",
-                    "VEHICLE_LINE_GSAR",
-                    "VEHICLE_LINE_GLOBAL",
-                    "ASSEMBLY_PLANT",
-                    "WARRANTY_START_DATE",
-                ]
-            ] = pd.DataFrame(
-                await asyncio.gather(
-                    *(
-                        self.__get_info_by_vin(vin, client, gsar_token)
-                        for vin in data["FULL_VIN"]
-                    )
-                )
-            ).values
-        data["PROD_DATE"] = (
-            pd.to_datetime(data["PROD_DATE"], format="%d-%b-%Y", errors="coerce")
-            .dt.strftime("%m/%d/%Y")
-            .replace({"NaT": ""}, regex=True)
-        )
-        data["WARRANTY_START_DATE"] = (
-            pd.to_datetime(
-                data["WARRANTY_START_DATE"], format="%d-%b-%Y", errors="coerce"
-            )
-            .dt.strftime("%m/%d/%Y")
-            .replace({"NaT": ""}, regex=True)
-        )
-        return data
-
-    def __load_gsar_credential(self) -> str:
-        return (
-            "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6ImFSZ2hZU01kbXI2RFZ"
-            + "pMTdWVVJtLUJlUENuayJ9.eyJhdWQiOiJ1cm46Z3NhcjpyZXNvdXJjZTp3ZWI"
-            + "6cHJvZCIsImlzcyI6Imh0dHBzOi8vY29ycC5zdHMuZm9yZC5jb20vYWRmcy9z"
-            + "ZXJ2aWNlcy90cnVzdCIsImlhdCI6MTcwOTczMTI4NCwiZXhwIjoxNzA5NzYwM"
-            + "Dg0LCJDb21tb25OYW1lIjoiVkRVQVJUMTAiLCJzdWIiOiJWRFVBUlQxMCIsIn"
-            + "VpZCI6InZkdWFydDEwIiwiZm9yZEJ1c2luZXNzVW5pdENvZGUiOiJGU0FNUiI"
-            + "sImdpdmVuTmFtZSI6IlZpY3RvciIsInNuIjoiRHVhcnRlIiwiaW5pdGlhbHMi"
-            + "OiJWLiIsIm1haWwiOiJ2ZHVhcnQxMEBmb3JkLmNvbSIsImVtcGxveWVlVHlwZ"
-            + "SI6Ik0iLCJzdCI6IkJBIiwiYyI6IkJSQSIsImZvcmRDb21wYW55TmFtZSI6Ik"
-            + "lOU1QgRVVWQUxETyBMT0RJIE4gUkVHSU9OQUwgQkFISUEiLCJmb3JkRGVwdEN"
-            + "vZGUiOiIwNjY0Nzg0MDAwIiwiZm9yZERpc3BsYXlOYW1lIjoiRHVhcnRlLCBW"
-            + "aWN0b3IgKFYuKSIsImZvcmREaXZBYmJyIjoiUFJEIiwiZm9yZERpdmlzaW9uI"
-            + "joiUEQgT3BlcmF0aW9ucyBhbmQgUXVhbGl0eSIsImZvcmRDb21wYW55Q29kZS"
-            + "I6IjAwMDE1ODM4IiwiZm9yZE1hbmFnZXJDZHNpZCI6Im1tYWdyaTEiLCJmb3J"
-            + "kTVJSb2xlIjoiTiIsImZvcmRTaXRlQ29kZSI6IjY1MzYiLCJmb3JkVXNlclR5"
-            + "cGUiOiJFbXBsb3llZSIsImFwcHR5cGUiOiJQdWJsaWMiLCJhcHBpZCI6InVyb"
-            + "jpnc2FyOmNsaWVudGlkOndlYjpwcm9kIiwiYXV0aG1ldGhvZCI6InVybjpvYX"
-            + "NpczpuYW1lczp0YzpTQU1MOjIuMDphYzpjbGFzc2VzOlBhc3N3b3JkUHJvdGV"
-            + "jdGVkVHJhbnNwb3J0IiwiYXV0aF90aW1lIjoiMjAyNC0wMy0wNlQxMzoyNjoy"
-            + "My45NzJaIiwidmVyIjoiMS4wIn0.kh7uPNLPrHmPCQ1xEE5tai2qyOCNwiPdm"
-            + "zOYLZUFu0TzgauCWeRKKRFfmcwFErmFFe__NQyu5PrzViTHrZg9grr1KdLV7Q"
-            + "xVSXjtLgkJOR0cNmII_PB_vi4qehUbeGHKiCaZW_zqs-V2eNDKAuLVeYdDeMI"
-            + "Uw7bweJmL1DL3cpitETMKU3IfZDCf17Hnug_RxsXtwAh5uTtk4AdzQ7xlEAVY"
-            + "kdwAX-kVCcahXhJxIZ2MzXpreVxfDBC8Ej-_2eoXu9l8EFkUr8ykr04WpWIbq"
-            + "mIHO4VKau4nIltZPpqE99iYh24G-tubMuzJQ45hEBlGRozpxO-QhzscrTmdD1"
-            + "G3GA"
-        )
-
-    @retry([Exception])
-    async def __get_info_by_vin(
-        self, vin: str, client: httpx.AsyncClient, token: str
-    ) -> Tuple[str, str, str, str, str, str]:
-        keys = ["prodDate", "wersVl", "awsVl", "globVl", "plant", "origWarantDate"]
-        retrived = dict.fromkeys(keys, "")
-
-        if vin != " ":
-            response = await client.get(
-                str(os.getenv("GSAR_WERS_URL")),
-                params={"vin": vin},
-                headers={"Authorization": f"Bearer {token}"},
-            )
-            data = dict(response.json())
-            for key in keys:
-                if key in data:
-                    retrived[key] = str(data.get(key))
-
-        return list(retrived.values())
-
     @retry([Exception])
     @rate_limiter(70, 1)
     @lru_cache(maxsize=70)
-    def __classify_case(
-        self, complaint: str, url: str, token: str
-    ) -> Tuple[str, str, str]:
+    def __classify_case(self, complaint: str) -> str:
         """
         Uses ChatGPT-4.0 to classify each recall by failure mode
 
@@ -266,8 +143,8 @@ class DataTransformer:
         }
         try:
             response = httpx.post(
-                url,
-                headers={"Authorization": f"Bearer {token}"},
+                self.credentials["url"],
+                headers={"Authorization": f"Bearer {self.credentials['token']}"},
                 json=content,
                 timeout=120,
             )
@@ -277,9 +154,9 @@ class DataTransformer:
 
         if response.status_code == 200:
             return self.__process_response(response.json()["content"])
-        return ["NOT CLASSIFIED", "~", "~"]
+        return "NOT CLASSIFIED"
 
-    def __process_response(self, message: str) -> Tuple[str, str, str]:
+    def __process_response(self, message: str) -> str:
         """
         Process response from ChatGPT, divide function, component and failure mode
         response format is: "Function~~~Result" where result is "component | failure"
@@ -297,13 +174,9 @@ class DataTransformer:
             function, result = parts
 
             if function == "NOT F8":
-                return [function, "~", "~"]
+                return ["~"]
 
             if function == "F8":
-                if "|" not in result:
-                    return [function, "~", result]
+                return [result]
 
-                component, failure = result.split(" | ")
-                return [function, component, failure]
-
-        return ["NOT CLASSIFIED", "~", "~"]
+        return ["NOT CLASSIFIED"]

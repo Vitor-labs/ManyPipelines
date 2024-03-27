@@ -39,6 +39,8 @@ class DataExtractor:
     def extract(self) -> ExtractContract:
         """
         Main method of extraction for VOQs
+        TODO: validate entry with all columns of 'complaints_data.names'
+              just validate if all columns are present, and the typos, don't
 
         Raises:
             ExtractError: error occurred during extraction

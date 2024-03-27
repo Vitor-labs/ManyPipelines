@@ -26,14 +26,12 @@ class Pipeline:
         self.loader = DataLoader()
 
     @time_logger(logger=logger)
-    async def run(self) -> None:
+    def run(self) -> None:
         """
         Main flow of data processing
         """
 
         DBConnector.connect_local()
         self.logger.info("Starting the ETL pipeline")
-        self.loader.load_data(
-            await self.transformer.transform(self.extractor.extract())
-        )
+        self.loader.load_data(self.transformer.transform(self.extractor.extract()))
         self.logger.info("ETL pipeline completed successfully")
