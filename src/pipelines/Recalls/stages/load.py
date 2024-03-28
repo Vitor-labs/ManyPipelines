@@ -51,14 +51,15 @@ class DataLoader:
             raise LoadError(str(exc)) from exc
 
     def __save_other_processed_data_csv(self, content: pd.DataFrame) -> None:
+        # TODO: update it to send it by email to designed personal
         content.to_csv(self.path, index=False)
         self.logger.info(
             "Run of (%s) done. Weekly data saved on %s", self.today, self.path
         )
 
     def __load_on_database(self, content: pd.DataFrame) -> None:
+        # TODO: load to sqlite, change to cloud SQL
         try:
-            # TODO: load to sqlite, change to cloud SQL
             content.to_sql(
                 "Fact_Complaints", DBConnector.local, if_exists="append", index=False
             )
@@ -67,6 +68,7 @@ class DataLoader:
         self.logger.info("Database uploaded with run of %s", self.today)
 
     def __update_env_vars(self) -> None:
+        # TODO: update it to save on cloud storage bucket
         set_key(
             find_dotenv(),
             "LAST_RECALL_WAVE_DATE",

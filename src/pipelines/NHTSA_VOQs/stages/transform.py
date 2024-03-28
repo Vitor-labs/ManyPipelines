@@ -7,7 +7,7 @@ import logging
 from functools import lru_cache
 
 import httpx
-import pandas as pd
+from pandas import to_datetime
 
 from src.utils.logger import setup_logger
 from src.errors.transform_error import TransformError
@@ -71,14 +71,14 @@ class DataTransformer:
             data["MILES"] = data["MILES"].astype("int64")
             data["FAIL_QUARTER"] = data["FAILDATE"].apply(get_quarter)
             data["FULL_VIN"] = data["ODINO"].apply(lambda x: vins.get(x, " "))
-            data["EXTRACTED_DATE"] = contract.extract_date.strftime("%m/%d/%Y")
             data["MILEAGE_CLASS"] = data["MILES"].apply(get_mileage_class)
-            data["LDATE"] = pd.to_datetime(data["LDATE"], format="%Y%m%d").dt.strftime(
+            data["LDATE"] = to_datetime(data["LDATE"], format="%Y%m%d").dt.strftime(
                 "%m/%d/%Y"
             )
-            data["FAILDATE"] = pd.to_datetime(
+            data["FAILDATE"] = to_datetime(
                 data["FAILDATE"], format="%Y%m%d"
             ).dt.strftime("%m/%d/%Y")
+            data["EXTRACTED_DATE"] = contract.extract_date.strftime("%m/%d/%Y")
 
             # Assigning foreing keys
             data["PROBLEM_ID"] = data["CDESCR"].apply(self.__classify_case)
@@ -95,18 +95,16 @@ class DataTransformer:
     @lru_cache(maxsize=70)
     def __classify_case(self, complaint: str) -> str:
         """
-        Uses ChatGPT-4.0 to classify each recall by failure mode
+        Uses ChatGPT-4.0 to classify each recall by Binning
 
         Args:
-            decription (str): complaint description
-            url (str): api endpoint
-            token (str): authorization token
+            complaint (str): complaint description
 
         Raises:
             exc: ConnectionError, API not responded
 
         Returns:
-            Tuple: result of classificaiton (failure mode)
+            Tuple: result of classificaiton Binning
         """
         text = (
             "Question 1: For this complaint, check if it's related to an ext"
@@ -165,10 +163,9 @@ class DataTransformer:
             data (str): api response message
 
         Returns:
-            Tuple: function, component, failure
+            str: binning
         """
-        if "\n" in message:
-            message = message.split("\n")[0]
+        message = message.split("\n")[0] if "\n" in message else message
 
         if len(parts := message.split("~~~")) == 2:
             function, result = parts
