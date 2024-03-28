@@ -16,8 +16,8 @@ from src.contracts.transform_contract import TransformContract
 from src.utils.decorators import rate_limiter, retry, time_logger
 from src.utils.funtions import (
     load_classifier_credentials,
-    get_state_names,
     get_mileage_class,
+    get_state_names,
     load_categories,
     load_new_models,
     load_full_vins,
@@ -83,7 +83,7 @@ class DataTransformer:
             # Assigning foreing keys
             data["PROBLEM_ID"] = data["CDESCR"].apply(self.__classify_case)
             data["LOCATION_ID"] = data["STATE"].replace(get_state_names)
-            data["RECALL_ID"] = "~"
+            data["RECALL_ID"] = "~"  # TODO: add relation between binning and recall id
 
             return TransformContract(content=data)
         except TransformError as exc:

@@ -11,7 +11,7 @@ from pandas import DataFrame
 from dotenv import load_dotenv, find_dotenv
 
 from src.errors.extract_error import ExtractError
-from src.pipelines.NHTSA_VOQs.stages.extract import DataExtractor
+from src.pipelines.Recalls.stages.extract import DataExtractor
 
 
 @pytest.fixture(name="test_setup")
@@ -19,6 +19,9 @@ def setup() -> Generator[DataExtractor, Any, Any]:
     """
     Test basic setup to prepare for next cases, create the basic flow
     of extration
+
+    Yields:
+        DataExtractor: Data extractor instance
     """
     load_dotenv(find_dotenv())
     yield DataExtractor()
@@ -32,7 +35,7 @@ def test_extract_sucess(test_setup) -> NoReturn:
         extractor = test_setup
         dataset = extractor.extract()
 
-        assert "ODINO" in dataset.raw_data.columns
+        assert "NHTSA_ID" in dataset.raw_data.columns
         assert isinstance(dataset.raw_data, DataFrame)
         assert dataset.extract_date == date.today()
 

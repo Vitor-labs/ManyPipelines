@@ -54,10 +54,10 @@ class DataExtractor:
         TODO: modify origin to sharepoint.
 
         Returns:
-            Dict[str, str]: dict with odino as key and full vin as value
+            pandas.DataFrame: dict with odino as key and full vin as value
         """
         df = pd.read_excel(
-            "./data/external/NSCCV-000502-20240304.xlsx", sheet_name="VOQS"
+            "sharepoint - dados/vins_last_update.xlsx", sheet_name="VOQS"
         )
         df.dropna(inplace=True)
         df = df[~df["VIN"].str.endswith("*") & (df["VIN"] != "") & (df["VIN"] != "N/A")]

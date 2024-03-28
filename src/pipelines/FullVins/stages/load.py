@@ -7,7 +7,6 @@ from datetime import date
 from sqlite3 import OperationalError
 
 import pandas as pd
-from dotenv import set_key, find_dotenv
 
 from src.utils.logger import setup_logger
 from src.errors.load_error import LoadError

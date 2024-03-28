@@ -1,16 +1,16 @@
 """
-This module defines some test cases for extracting a dataset from
-nhtsa portal
+Test case for transformion step
 """
 
 from typing import Any, Generator, NoReturn
 
 import pytest
+from pandas import DataFrame
 from dotenv import load_dotenv, find_dotenv
 
 from src.errors.transform_error import TransformError
 from src.contracts.transform_contract import TransformContract
-from src.pipelines.NHTSA_VOQs.stages.transform import DataTransformer
+from src.pipelines.FullVins.stages.transform import DataTransformer
 
 
 @pytest.fixture(name="test_setup")
@@ -23,32 +23,32 @@ def setup() -> Generator[DataTransformer, Any, Any]:
         DataTransformer: Data transformer instance.
     """
     load_dotenv(find_dotenv())
-
     yield DataTransformer()
 
 
-def test_transform_sucess(test_setup) -> NoReturn:
+@pytest.mark.asyncio
+async def test_transform_success(test_setup) -> NoReturn:
     """
-    Test case for transforming sucess
+    Test case for HttpRequest.transform sucess
     """
     transformer = test_setup
 
     try:
-        dataset = transformer.transform()
-
         # TODO: need to implement mock for extract contract
-        assert isinstance(dataset, TransformContract)
-        assert "PROBLEM_ID" in dataset.content.columns
-
+        response = await transformer.transform()
     except TransformError as exc:
-        pytest.fail(f"Extract error catched: {exc}")
+        pytest.fail(f"FAILED: {exc}")
+
+    assert isinstance(response, TransformContract)
+    assert isinstance(response.raw_data, DataFrame)
 
 
-def test_transform_fail(test_setup) -> NoReturn:
+@pytest.mark.asyncio
+async def test_transform_fail(test_setup) -> NoReturn:
     """
     Test case for DataTransformer.transform fail and raise exception
     """
-    transformer = test_setup
+    transformor = test_setup
     with pytest.raises(TransformError):
         # TODO: need to implement failing mock for extract contract
-        transformer.transform()
+        await transformor.transform()

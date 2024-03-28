@@ -10,7 +10,7 @@ from dotenv import load_dotenv, find_dotenv
 
 from src.errors.transform_error import TransformError
 from src.contracts.transform_contract import TransformContract
-from src.pipelines.NHTSA_VOQs.stages.transform import DataTransformer
+from src.pipelines.Recalls.stages.transform import DataTransformer
 
 
 @pytest.fixture(name="test_setup")

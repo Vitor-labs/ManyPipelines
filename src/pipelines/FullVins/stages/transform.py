@@ -102,6 +102,7 @@ class DataTransformer:
         return data
 
     def __load_gsar_credential(self) -> str:
+        # TODO: need to request
         return (
             "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6ImFSZ2hZU01kbXI2RFZ"
             + "pMTdWVVJtLUJlUENuayJ9.eyJhdWQiOiJ1cm46Z3NhcjpyZXNvdXJjZTp3ZWI"

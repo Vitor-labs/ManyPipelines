@@ -3,16 +3,13 @@ This modeule defines a test case for loading the data
 collected into a csv file a appending to a excel file
 """
 
-from datetime import date
-import os
 from typing import Any, Generator, NoReturn
+
 import pytest
-import pandas as pd
 from dotenv import load_dotenv, find_dotenv
 
 from src.errors.load_error import LoadError
-from src.pipelines.NHTSA_VOQs.stages.load import DataLoader
-from src.contracts.transform_contract import TransformContract
+from src.pipelines.Recalls.stages.load import DataLoader
 
 
 @pytest.fixture(name="test_setup")
